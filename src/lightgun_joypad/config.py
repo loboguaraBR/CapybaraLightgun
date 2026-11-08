@@ -9,7 +9,10 @@ import threading
 from pathlib import Path
 
 DEFAULTS: dict = {
-    # Entrada: "auto" | "evdev" (Linux, driver hid-nintendo) | "hidapi"
+    # Fonte da mira: "auto" (controle com giroscópio: Switch ou PlayStation),
+    # "switch", "playstation" ou "mouse" (mouse comum vira light gun).
+    "input_source": "auto",
+    # Entrada: "auto" | "evdev" (Linux, drivers do kernel) | "hidapi"
     "input_backend": "auto",
     # Controle preferido: "auto" | "pro" | "joycon-r" | "joycon-l"
     "device": "auto",
@@ -61,6 +64,17 @@ DEFAULTS: dict = {
     "motion": {"interp_ms": 16, "output_hz": 250, "max_extrap_ms": 40},
     # Compensação do "tranco" ao apertar o gatilho.
     "shot": {"lookback_ms": 25, "freeze_ms": 60},
+    # Recarregar como numa light gun de verdade:
+    #   offscreen_aim: apertar o gatilho mirando FORA da tela = tiro fora da tela
+    #   shake: um tranco forte na arma (> shake_g) também recarrega
+    "reload": {"offscreen_aim": True, "offscreen_margin": 0.02, "shake": False, "shake_g": 2.5},
+    # Coice: vibração curta a cada tiro (Joy-Con/Pro/DualSense/DS4 no Linux).
+    "rumble": {"enabled": True, "ms": 45, "strength": 0.7},
+    # Mira desenhada na tela (útil no modo driver, em jogos sem mira).
+    "overlay": {"enabled": False, "size": 36},
+    # Troca automática para este perfil quando a janela ativa tiver uma destas
+    # palavras (separadas por vírgula), ex.: "retroarch, mame".
+    "auto_match": "",
     # Tiros por segundo da ação "autofire".
     "autofire_hz": 10,
     # Para onde a mira vai num "tiro fora da tela" (recarregar).
@@ -87,6 +101,12 @@ DEFAULTS: dict = {
         "CAPTURE": "toggle",
         "SR": "key:esc",
         "SL": "key:enter",
+        # Fonte "mouse comum"
+        "MOUSE_LEFT": "trigger",
+        "MOUSE_RIGHT": "offscreen_shot",
+        "MOUSE_MIDDLE": "key:5",
+        "MOUSE_X1": "key:1",
+        "MOUSE_X2": "recenter",
     },
 }
 
@@ -100,6 +120,7 @@ ACTIONS = {
     "mouse_middle": "Clique do meio",
     "recenter": "Recentrar mira",
     "toggle": "Pausar/retomar mira",
+    "toggle_crosshair": "Mostrar/esconder mira na tela",
     "key": "Tecla do teclado…",
 }
 
@@ -112,7 +133,18 @@ KEY_NAMES = (
 )
 
 BUTTON_NAMES = ["ZR", "R", "ZL", "L", "A", "B", "X", "Y", "UP", "DOWN", "LEFT", "RIGHT",
-                "PLUS", "MINUS", "HOME", "CAPTURE", "SL", "SR", "RSTICK", "LSTICK"]
+                "PLUS", "MINUS", "HOME", "CAPTURE", "SL", "SR", "RSTICK", "LSTICK",
+                "MOUSE_LEFT", "MOUSE_RIGHT", "MOUSE_MIDDLE", "MOUSE_X1", "MOUSE_X2"]
+
+# Como cada botão se chama em cada controle (para mostrar na tela).
+BUTTON_LABELS = {
+    "ZR": "ZR · R2", "R": "R · R1", "ZL": "ZL · L2", "L": "L · L1",
+    "A": "A · ○", "B": "B · ✕", "X": "X · △", "Y": "Y · □",
+    "PLUS": "+ · Options", "MINUS": "− · Create/Share", "HOME": "Home · PS", "CAPTURE": "Captura · touchpad",
+    "RSTICK": "R3", "LSTICK": "L3", "UP": "↑", "DOWN": "↓", "LEFT": "←", "RIGHT": "→",
+    "MOUSE_LEFT": "Mouse esq.", "MOUSE_RIGHT": "Mouse dir.", "MOUSE_MIDDLE": "Mouse meio",
+    "MOUSE_X1": "Mouse lateral 1", "MOUSE_X2": "Mouse lateral 2",
+}
 
 # Perfis prontos (sobreposições em cima de DEFAULTS).
 PRESETS: dict = {
@@ -129,6 +161,16 @@ PRESETS: dict = {
         "smoothing": {"enabled": True, "min_cutoff": 0.6, "beta": 4.0, "d_cutoff": 1.0},
         "aim": dict(DEFAULTS["aim"], jitter_lock=0.0015),
         "shot": {"lookback_ms": 35, "freeze_ms": 90},
+    },
+    "Mouse comum como light gun": {
+        "input_source": "mouse",
+        "output_target": "lightgun",
+        "motion": {"interp_ms": 0, "output_hz": 250, "max_extrap_ms": 0},
+        "smoothing": {"enabled": False, "min_cutoff": 1.2, "beta": 6.0, "d_cutoff": 1.0},
+        "shot": {"lookback_ms": 0, "freeze_ms": 0},
+    },
+    "PlayStation (DualSense/DS4)": {
+        "input_source": "playstation",
     },
     "Mouse giroscópio (PC/FPS)": {
         "mode": "relative",

@@ -1,6 +1,7 @@
 # lightgun-joypad
 
-Transforma um **Joy-Con** ou **Pro Controller** do Nintendo Switch numa
+Transforma um **Joy-Con** ou **Pro Controller** do Nintendo Switch, um
+**DualSense (PS5)** ou **DualShock 4 (PS4)**, ou até o **mouse comum**, numa
 **light gun absoluta**, no **Linux** e no **Windows**, usando o giroscópio e o
 acelerômetro do controle.
 
@@ -84,6 +85,27 @@ na **bandeja** (o ícone da mira perto do relógio). Pelo menu da bandeja dá pa
 pausar, recentrar, calibrar, trocar de perfil ou encerrar. A cor do ícone
 mostra o estado: verde = ativa, amarelo = pausada ou giroscópio sem calibrar,
 cinza = sem controle. Tudo o que você muda vale na hora.
+
+### Fontes da mira (aba Controle)
+
+| Fonte | Como mirar | Observações |
+|---|---|---|
+| **Joy-Con / Pro Controller** | Joy-Con em pé como pistola, ZR = gatilho | Linux e Windows |
+| **DualSense / DualShock 4** | Aponte a **frente** do controle (barra de luz) para a tela; R2 = gatilho, R1 = recarregar, □ = recentrar | Linux pelo driver do kernel. No Windows o suporte é experimental (HID cru) |
+| **Mouse comum** | O cursor vira a mira da light gun virtual; botão esquerdo = tiro, direito = recarregar | Linux/X11, modo driver (não faz sentido no modo mouse) |
+
+### Recursos de arma
+
+- **Recarregar mirando fora da tela:** apontou para fora e atirou, sai um
+  "tiro fora da tela", como numa light gun de verdade.
+- **Recarregar com um tranco:** um puxão forte na arma (opcional).
+- **Coice:** uma vibração curta a cada tiro (Joy-Con, Pro Controller,
+  DualSense e DS4 no Linux).
+- **Mira na tela:** desenha a mira por cima de tudo, para jogos sem mira no
+  modo driver.
+- **Perfis automáticos:** o perfil do jogo é ativado sozinho pela janela ativa
+  (ex.: `retroarch`, `mame`).
+- A aba **Ajuda** do aplicativo traz o passo a passo por emulador e dicas de precisão.
 
 ### Os dois modos (botões no topo da janela)
 

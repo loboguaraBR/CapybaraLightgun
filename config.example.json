@@ -1,4 +1,5 @@
 {
+  "input_source": "auto",
   "input_backend": "auto",
   "device": "auto",
   "output_backend": "auto",
@@ -55,6 +56,22 @@
     "lookback_ms": 25,
     "freeze_ms": 60
   },
+  "reload": {
+    "offscreen_aim": true,
+    "offscreen_margin": 0.02,
+    "shake": false,
+    "shake_g": 2.5
+  },
+  "rumble": {
+    "enabled": true,
+    "ms": 45,
+    "strength": 0.7
+  },
+  "overlay": {
+    "enabled": false,
+    "size": 36
+  },
+  "auto_match": "",
   "autofire_hz": 10,
   "offscreen_position": [
     0.0,
@@ -79,6 +96,11 @@
     "HOME": "toggle",
     "CAPTURE": "toggle",
     "SR": "key:esc",
-    "SL": "key:enter"
+    "SL": "key:enter",
+    "MOUSE_LEFT": "trigger",
+    "MOUSE_RIGHT": "offscreen_shot",
+    "MOUSE_MIDDLE": "key:5",
+    "MOUSE_X1": "key:1",
+    "MOUSE_X2": "recenter"
   }
 }

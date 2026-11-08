@@ -75,7 +75,7 @@ Say "Registrando em Aplicativos instalados"
 $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\LightGunJoypad"
 New-Item -Path $key -Force | Out-Null
 Set-ItemProperty $key DisplayName "Light Gun Joypad"
-Set-ItemProperty $key DisplayVersion "0.3.0"
+Set-ItemProperty $key DisplayVersion "0.4.0"
 Set-ItemProperty $key Publisher "lightgun-joypad"
 Set-ItemProperty $key InstallLocation $Dest
 Set-ItemProperty $key DisplayIcon "$vpyw,0"

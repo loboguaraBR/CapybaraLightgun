@@ -15,11 +15,21 @@ from .inputs import DeviceLost, NoDeviceFound, open_source
 from .outputs import OutputProxy
 
 
+def effective_config(store: ConfigStore, name: str | None = None) -> dict:
+    """Config do perfil, com as combinações impossíveis corrigidas."""
+    cfg = store.effective(name)
+    if cfg.get("input_source") == "mouse":
+        # Mouse comum -> light gun: a saída não pode ser o próprio mouse
+        # (o cursor se realimentaria e cada clique sairia dobrado).
+        cfg["output_target"] = "lightgun"
+    return cfg
+
+
 class ClientApp:
     def __init__(self, store: ConfigStore, calib_path: str | None = None, output_backend: str | None = None):
         self.store = store
         self.calib_path = calib_path
-        cfg = store.effective()
+        cfg = effective_config(store)
         self.calib = load_calibration(calib_path)
         self.out = OutputProxy(cfg, output_backend)
         self.tracker = Tracker(cfg, homography_from(cfg, self.calib))
@@ -43,7 +53,12 @@ class ClientApp:
     # ---- controle ------------------------------------------------------------
     def controller_loop(self) -> None:
         while not self.stop.is_set():
-            cfg = self.store.effective()
+            cfg = effective_config(self.store)
+            if cfg.get("input_source") == "mouse" and not sys.platform.startswith("linux"):
+                self.connected = False
+                self.status = "mouse como light gun só existe no Linux (precisa do modo driver)"
+                self.stop.wait(2.0)
+                continue
             try:
                 src = open_source(cfg)
             except NoDeviceFound as exc:
@@ -57,6 +72,7 @@ class ClientApp:
                 self.stop.wait(3.0)
                 continue
             self.src = src
+            self._src_choice = cfg.get("input_source", "auto")
             self.device = src.name
             self.connected = True
             self.status = "conectado"
@@ -88,7 +104,10 @@ class ClientApp:
 
     # ---- configuração --------------------------------------------------------
     def apply_active(self) -> None:
-        cfg = self.store.effective()
+        cfg = effective_config(self.store)
+        src = self.src
+        if src is not None and (cfg.get("input_source", "auto") != getattr(self, "_src_choice", None)):
+            self.reconnect()  # trocou a fonte da mira: reabre
         self.gun.apply_config(cfg)
         self.out.reconfigure(cfg)
         if not self.calib:
@@ -137,7 +156,7 @@ class ClientApp:
             except FileNotFoundError:
                 pass
             self.calib = None
-            self.tracker.set_homography(homography_from(self.store.effective(), None))
+            self.tracker.set_homography(homography_from(effective_config(self.store), None))
 
     # ---- estado para o painel ------------------------------------------------
     def state(self) -> dict:
@@ -167,6 +186,10 @@ class ClientApp:
             "paused": g.paused,
             "mode": g.mode,
             "target": g.cfg.get("output_target", "mouse"),
+            "source": g.cfg.get("input_source", "auto"),
+            "family": getattr(self.src, "family", "") if self.connected else "",
+            "outside": g.outside,
+            "overlay_on": g.overlay_on,
             "yielding": time.monotonic() < g.yield_until,
             "pos": [round(g.pos[0], 4), round(g.pos[1], 4)],
             "raw": [round(raw[0], 4), round(raw[1], 4)] if raw else None,
@@ -187,6 +210,7 @@ class ClientApp:
     def select_profile(self, name: str) -> None:
         if name not in self.store.profiles:
             raise ValueError("perfil não existe")
+        self.manual_profile = name
         self.store.active = name
         self.store.save()
         self.apply_active()
@@ -196,6 +220,32 @@ class ClientApp:
         self.store.save()
         if name == self.store.active:
             self.apply_active()
+
+    # ---- troca automática de perfil ------------------------------------------
+    def auto_switch(self, window_text: str) -> str | None:
+        """Ativa o perfil cujo `auto_match` aparece no texto da janela ativa.
+
+        Sem correspondência, volta ao perfil escolhido manualmente.
+        Retorna o nome do perfil se trocou.
+        """
+        text = (window_text or "").lower()
+        if not text or "light gun joypad" in text:
+            return None
+        store = self.store
+        if not hasattr(self, "manual_profile") or self.manual_profile not in store.profiles:
+            self.manual_profile = store.active
+        target = None
+        for name, prof in store.profiles.items():
+            words = [w.strip().lower() for w in str(prof.get("auto_match", "")).split(",") if w.strip()]
+            if any(w in text for w in words):
+                target = name
+                break
+        target = target or self.manual_profile
+        if target != store.active:
+            store.active = target
+            self.apply_active()
+            return target
+        return None
 
     def reset_bias(self) -> None:
         self.tracker.bias.acquired = False

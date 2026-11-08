@@ -15,7 +15,7 @@ from collections import deque
 from .filters import OneEuro2D
 from .fusion import BiasEstimator, Mahony
 from .geometry import Homography, heading, median_forward, project, rotate_yaw
-from .inputs import ButtonState, ImuSample
+from .inputs import ButtonState, ImuSample, PointerSample
 
 DEG = math.pi / 180.0
 REL_COUNTS = (1920.0, 1080.0)  # "pixels" por tela inteira no modo relativo
@@ -121,6 +121,14 @@ class LightGun:
         # Quando definido, o gatilho NÃO clica: entrega a direção do cano
         # para a calibração.
         self.capture_hook = None
+        # Coice: função do controle que vibra (definida em run()).
+        self.feedback = None
+        # Mira fora da tela (para recarregar apontando para fora).
+        self.outside = False
+        self._shake_cool = 0.0
+        self._pulse_release = None  # tiro curto agendado (recarregar por tranco)
+        self.pointer_mode = False  # fonte "mouse comum"
+        self.overlay_on = bool(cfg.get("overlay", {}).get("enabled", False))
         self.apply_config(cfg)
 
     def apply_config(self, cfg: dict) -> None:
@@ -151,6 +159,15 @@ class LightGun:
             self._rel_prev = None
         self.mode = mode
         self.rel_speed = float(cfg.get("relative_speed", 1.0))
+        rl = cfg.get("reload", {})
+        self.reload_offscreen = bool(rl.get("offscreen_aim", True))
+        self.offscreen_margin = float(rl.get("offscreen_margin", 0.02))
+        self.reload_shake = bool(rl.get("shake", False))
+        self.shake_g = float(rl.get("shake_g", 2.5))
+        ru = cfg.get("rumble", {})
+        self.rumble_on = bool(ru.get("enabled", True))
+        self.rumble_ms = int(ru.get("ms", 45))
+        self.rumble_strength = float(ru.get("strength", 0.7))
         self.buttons_map = {
             (k if k.startswith(("BTN_", "KEY_")) else k.upper()): v for k, v in cfg["buttons"].items() if v
         }
@@ -191,7 +208,7 @@ class LightGun:
         do presente; se o Bluetooth atrasou, prevê pela velocidade recente.
         """
         h = list(self.history)
-        if not h or self._clock_off is None or self.render_delay <= 0:
+        if not h or self._clock_off is None or self.render_delay <= 0 or self.pointer_mode:
             return self.pos
         if now is None:
             now = time.monotonic()
@@ -243,7 +260,7 @@ class LightGun:
             now = clock()
             try:
                 if (self.render_delay > 0 and self.mode == "absolute" and self.history
-                        and self.can_move(now)):
+                        and not self.pointer_mode and self.can_move(now)):
                     x, y = self.render_pos(now)
                     if self._last_out != (x, y):
                         self.out.move(x, y)
@@ -267,15 +284,72 @@ class LightGun:
         xy = self.tracker.aim_xy()
         self.raw = xy
         self._autofire_tick(st)
+        self._shake_check(s, st)
         if xy is None:  # cano apontando para longe da tela
             self.onscreen = False
+            self.outside = True
             self._rel_prev = None
             return
+        self._on_aim(xy, st, now)
+
+    def on_pointer(self, p: PointerSample, now: float) -> None:
+        """Fonte "mouse comum": a posição já vem em coordenadas de tela."""
+        self.pointer_mode = True
+        self.sensor_t += p.dt
+        self._update_clock(now)
+        self._wall_at_sample = now
+        self.samples += 1
+        st = self.sensor_t
+        r = self.cfg.get("region") or [0.0, 0.0, 1.0, 1.0]
+        w, h = (r[2] - r[0]) or 1.0, (r[3] - r[1]) or 1.0
+        x, y = (p.x - r[0]) / w, (p.y - r[1]) / h
+        self.raw = (x, y)
+        self._autofire_tick(st)
+        self.outside = not (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0)
+        x, y = min(max(x, 0.0), 1.0), min(max(y, 0.0), 1.0)
+        self.onscreen = not self.outside
+        self.pos = (x, y)
+        self.history.append((st, x, y))
+        if self.can_move(now):
+            self.out.move(x, y)
+            self._last_out = (x, y)
+
+    def _shake_check(self, s: ImuSample, st: float) -> None:
+        if self._pulse_release is not None and st >= self._pulse_release:
+            self._pulse_release = None
+            self.out.button("left", False)
+            self.offscreen_held = max(0, self.offscreen_held - 1)
+        if not self.reload_shake or self.paused or st < self._shake_cool:
+            return
+        a = s.accel_g
+        if math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]) > self.shake_g:
+            self._shake_cool = st + 0.5
+            self.offscreen_held += 1
+            self._offscreen_press()
+            self._pulse_release = st + 0.06
+
+    def _kick(self) -> None:
+        if self.rumble_on and self.feedback is not None:
+            try:
+                self.feedback(self.rumble_ms, self.rumble_strength)
+            except Exception:
+                pass
+
+    def _offscreen_press(self) -> None:
+        ox, oy = self.cfg.get("offscreen_position", [0.0, 0.0])
+        if self.mode == "absolute":
+            self.out.move(ox, oy)
+        self.out.button("left", True)
+        self._kick()
+
+    def _on_aim(self, xy, st: float, now: float) -> None:
         x = 0.5 + (xy[0] - 0.5) * self.sens[0] + self.offset[0]
         y = 0.5 + (xy[1] - 0.5) * self.sens[1] + self.offset[1]
         sm = self.smooth
         if sm is not None:
             x, y = sm(x, y, st)
+        m = self.offscreen_margin
+        self.outside = not (-m <= x <= 1 + m and -m <= y <= 1 + m)
         can_move = self.can_move(now)
         if self.mode == "relative":
             self._relative(x, y, can_move)
@@ -313,6 +387,7 @@ class LightGun:
             if self._af_down:
                 self.last_shot = self.pos
                 self.shots += 1
+                self._kick()
             self.out.button("left", self._af_down)
             self._af_next = st + self.af_period
 
@@ -356,6 +431,11 @@ class LightGun:
             self.paused = not self.paused
             print("mira PAUSADA" if self.paused else "mira ATIVA")
             return
+        if act == "toggle_crosshair":
+            self.overlay_on = not self.overlay_on
+            return
+        if act == "trigger" and self.reload_offscreen and self.outside and not self.paused:
+            act = "offscreen_shot"  # mirou fora da tela: recarrega, como numa arma real
         if self.paused and act in ("trigger", "offscreen_shot", "autofire"):
             return
         if act in ("trigger", "offscreen_shot", "autofire"):
@@ -369,21 +449,20 @@ class LightGun:
             self.last_shot = (x, y)
             self.shots += 1
             self.out.button("left", True)
+            self._kick()
             self.freeze_until = now + self.freeze
         elif act == "autofire":
             self._af_held += 1
             if self._af_held == 1:
                 self.last_shot = self.pos
                 self.shots += 1
+                self._kick()
                 self._af_down = True
                 self.out.button("left", True)
                 self._af_next = self.press_sensor_t(now) + self.af_period
         elif act == "offscreen_shot":
             self.offscreen_held += 1
-            ox, oy = self.cfg.get("offscreen_position", [0.0, 0.0])
-            if self.mode == "absolute":
-                self.out.move(ox, oy)
-            self.out.button("left", True)
+            self._offscreen_press()
         elif act.startswith("mouse_"):
             self.out.button(act[6:], True)
         elif act.startswith("key:"):
@@ -425,6 +504,8 @@ class LightGun:
 
     # ---- laço --------------------------------------------------------------
     def run(self, source) -> None:
+        self.feedback = getattr(source, "rumble", None)
+        self.pointer_mode = False
         self.start_output_loop()
         clock = time.monotonic
         warned_bias = False
@@ -436,5 +517,7 @@ class LightGun:
                 if not warned_bias and not self.tracker.bias.acquired and now - start > 8.0:
                     warned_bias = True
                     print("dica: apoie o controle parado por ~1 s para calibrar o giroscópio (evita deriva).")
+            elif isinstance(ev, PointerSample):
+                self.on_pointer(ev, now)
             elif isinstance(ev, ButtonState):
                 self.on_buttons(ev, now)

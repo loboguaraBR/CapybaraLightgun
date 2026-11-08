@@ -18,7 +18,7 @@ python3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' || { echo "precisa 
 # 1) Sistema: Bluetooth aceitar Joy-Con + regras udev (só se ainda faltar)
 need_sys=0
 grep -qE '^\s*ClassicBondedOnly\s*=\s*false' /etc/bluetooth/input.conf 2>/dev/null || need_sys=1
-grep -q 4c4a /etc/udev/rules.d/70-lightgun-joypad.rules 2>/dev/null || need_sys=1
+grep -q 054c /etc/udev/rules.d/70-lightgun-joypad.rules 2>/dev/null || need_sys=1
 if [ "$need_sys" = 1 ] && [ -z "${LGJ_SKIP_SYSTEM:-}" ]; then
   say "Ajustando Bluetooth e permissões (vai pedir sua senha)"
   if [ "$(id -u)" -eq 0 ]; then "$SRC/scripts/fix-linux-joycon.sh"

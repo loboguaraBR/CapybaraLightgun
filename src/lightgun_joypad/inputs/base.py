@@ -21,3 +21,12 @@ class ImuSample:
 @dataclass
 class ButtonState:
     pressed: frozenset  # nomes lógicos (ZR, A, ...) e crus (BTN_TR2, ...)
+
+
+@dataclass
+class PointerSample:
+    """Posição já em coordenadas de tela (fonte "mouse comum")."""
+
+    x: float  # 0..1 na área de trabalho inteira
+    y: float
+    dt: float
