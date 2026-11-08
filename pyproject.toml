@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lightgun-joypad"
+version = "0.3.0"
+description = "Usa o giroscópio do Joy-Con / Pro Controller (Nintendo Switch) como light gun absoluta no Linux e no Windows"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "evdev-binary>=1.6; sys_platform == 'linux'",
+  "hidapi>=0.14; sys_platform == 'win32'",
+  "PyQt5>=5.15",
+]
+
+[project.optional-dependencies]
+hid = ["hidapi>=0.14"]
+dev = ["pytest>=7"]
+sim = ["pygame>=2.5"]
+
+[project.scripts]
+lightgun-joypad = "lightgun_joypad.cli:main"
+
+[project.gui-scripts]
+lightgun-joypad-gui = "lightgun_joypad.gui:run_gui"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lightgun_joypad = ["assets/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

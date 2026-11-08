@@ -1,0 +1,84 @@
+{
+  "input_backend": "auto",
+  "device": "auto",
+  "output_backend": "auto",
+  "output_target": "lightgun",
+  "mouse_yield": {
+    "enabled": true,
+    "seconds": 2.5
+  },
+  "mode": "absolute",
+  "relative_speed": 1.0,
+  "region": [
+    0.0,
+    0.0,
+    1.0,
+    1.0
+  ],
+  "monitor": null,
+  "gyro_dps_per_lsb": 0.07,
+  "accel_g_per_lsb": 0.000244140625,
+  "aim": {
+    "sensitivity_x": 1.0,
+    "sensitivity_y": 1.0,
+    "offset_x": 0.0,
+    "offset_y": 0.0,
+    "jitter_lock": 0.0
+  },
+  "fusion": {
+    "kp": 0.35,
+    "accel_tolerance_g": 0.25
+  },
+  "auto_bias": {
+    "enabled": true,
+    "window_s": 0.6,
+    "still_range_dps": 1.5,
+    "accel_range_g": 0.03
+  },
+  "screen": {
+    "width_m": 1.21,
+    "height_m": 0.68,
+    "distance_m": 2.0
+  },
+  "smoothing": {
+    "enabled": true,
+    "min_cutoff": 1.2,
+    "beta": 6.0,
+    "d_cutoff": 1.0
+  },
+  "motion": {
+    "interp_ms": 16,
+    "output_hz": 250,
+    "max_extrap_ms": 40
+  },
+  "shot": {
+    "lookback_ms": 25,
+    "freeze_ms": 60
+  },
+  "autofire_hz": 10,
+  "offscreen_position": [
+    0.0,
+    0.0
+  ],
+  "grab": false,
+  "buttons": {
+    "ZR": "trigger",
+    "ZL": "trigger",
+    "R": "offscreen_shot",
+    "L": "offscreen_shot",
+    "A": "mouse_right",
+    "RIGHT": "mouse_right",
+    "B": "mouse_middle",
+    "DOWN": "mouse_middle",
+    "Y": "recenter",
+    "LEFT": "recenter",
+    "X": "key:1",
+    "UP": "key:1",
+    "PLUS": "key:5",
+    "MINUS": "key:5",
+    "HOME": "toggle",
+    "CAPTURE": "toggle",
+    "SR": "key:esc",
+    "SL": "key:enter"
+  }
+}

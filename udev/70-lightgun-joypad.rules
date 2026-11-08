@@ -1,0 +1,17 @@
+# lightgun-joypad: acesso sem root ao controle Switch e ao /dev/uinput
+# (TAG uaccess = libera para o usuário logado na sessão local)
+
+# Mouse virtual (uinput)
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"
+
+# Dispositivos evdev do driver hid-nintendo (gamepad + IMU)
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{id/vendor}=="057e", TAG+="uaccess"
+
+# hidraw (backend hidapi), USB e Bluetooth
+KERNEL=="hidraw*", ATTRS{idVendor}=="057e", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*057E:200[679E]*", TAG+="uaccess"
+
+# Modo "só light gun (driver)": a área de trabalho (libinput) IGNORA o dispositivo
+# virtual — cursor e touchpad ficam livres — e o usuário pode lê-lo direto
+# (RetroArch com driver de entrada udev).
+SUBSYSTEM=="input", ATTRS{id/vendor}=="1209", ATTRS{id/product}=="4c4a", ENV{LIBINPUT_IGNORE_DEVICE}="1", TAG+="uaccess"
