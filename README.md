@@ -88,16 +88,26 @@ cinza = sem controle. Tudo o que você muda vale na hora.
 
 ### Fontes da mira (aba Controle)
 
+A emulação da light gun é a mesma para todas as fontes; o que muda é quem
+move a mira.
+
 | Fonte | Como mirar | Observações |
 |---|---|---|
-| **Joy-Con / Pro Controller** | Joy-Con em pé como pistola, ZR = gatilho | Linux e Windows |
-| **DualSense / DualShock 4** | Aponte a **frente** do controle (barra de luz) para a tela; R2 = gatilho, R1 = recarregar, □ = recentrar | Linux pelo driver do kernel. No Windows o suporte é experimental (HID cru) |
-| **Mouse comum** | O cursor vira a mira da light gun virtual; botão esquerdo = tiro, direito = recarregar | Linux/X11, modo driver (não faz sentido no modo mouse) |
+| **Joy-Con / Pro Controller** | Joy-Con em pé como pistola, ZR = gatilho | O caminho mais preciso. Linux e Windows |
+| **DualSense (PS5) / DualShock 4 (PS4)** | Aponte a **frente** do controle (barra de luz) para a tela; R2 = gatilho, R1 = recarregar, □ = recentrar | Linux (driver do kernel ou SDL) e Windows (SDL) |
+| **Outro controle com giroscópio** | Frente do controle apontada para a tela | Via SDL: Steam Deck/Controller, 8BitDo e outros com sensores |
+| **Mouse do sistema** | O próprio mouse | Para quem não tem controle com giroscópio, como os controles de Xbox comuns. O mouse segue sendo o mouse, sem cliques dobrados; o programa acrescenta recarregar (botão direito), tiro automático, teclas, mira na tela e perfis. No modo driver (Linux), também alimenta a light gun virtual |
+
+Em "Automático", o programa usa o primeiro controle com giroscópio que
+encontrar, com o Joy-Con/Pro Controller em primeiro lugar. O programa **não
+usa o Steam Input**. Se a Steam estiver aberta, desative o Steam Input para o
+controle, porque os dois disputam o dispositivo.
 
 ### Recursos de arma
 
-- **Recarregar mirando fora da tela:** apontou para fora e atirou, sai um
-  "tiro fora da tela", como numa light gun de verdade.
+- **Recarregar mirando fora da tela** (opcional, desligado por padrão):
+  apontou para fora e atirou, sai um "tiro fora da tela", como numa light gun
+  de verdade.
 - **Recarregar com um tranco:** um puxão forte na arma (opcional).
 - **Coice:** uma vibração curta a cada tiro (Joy-Con, Pro Controller,
   DualSense e DS4 no Linux).

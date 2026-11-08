@@ -5,14 +5,27 @@ import sys
 
 from .base import ButtonState, DeviceLost, ImuSample, NoDeviceFound, PointerSample  # noqa: F401
 
-# input_source: "auto" (qualquer controle com giroscópio), "switch",
-# "playstation" ou "mouse".
+# input_source:
+#   "auto"        qualquer controle com giroscópio (Nintendo, PlayStation, outros)
+#   "switch"      Joy-Con / Pro Controller (caminho próprio, o mais preciso)
+#   "playstation" DualSense / DualShock 4
+#   "gamepad"     outro controle com giroscópio (SDL: Steam Deck/Controller, 8BitDo...)
+#   "mouse"       mouse do sistema (para quem não tem controle com giroscópio)
 SOURCES = {
-    "auto": "Automático (Switch ou PlayStation)",
+    "auto": "Automático (qualquer controle com giroscópio)",
     "switch": "Nintendo Switch (Joy-Con / Pro Controller)",
     "playstation": "PlayStation (DualSense PS5 / DualShock 4)",
-    "mouse": "Mouse comum",
+    "gamepad": "Outro controle com giroscópio (SDL)",
+    "mouse": "Mouse do sistema (sem controle)",
 }
+
+
+def _try(errors: list, label: str, fn):
+    try:
+        return fn()
+    except (ImportError, NoDeviceFound, OSError) as exc:
+        errors.append(f"{label}: {exc}")
+        return None
 
 
 def open_source(cfg: dict):
@@ -21,34 +34,54 @@ def open_source(cfg: dict):
         from .mouse_source import MouseSource
 
         return MouseSource.open()
-    families = ("switch", "playstation") if src == "auto" else (src,)
-    backend = cfg.get("input_backend", "auto")
     prefer = cfg.get("device", "auto")
-    errors = []
-    order = [backend] if backend != "auto" else (["evdev", "hidapi"] if sys.platform.startswith("linux") else ["hidapi"])
-    for name in order:
-        for fam in (families if name == "hidapi" else (None,)):
-            try:
-                if name == "evdev":
-                    from .linux_evdev import EvdevSource
+    linux = sys.platform.startswith("linux")
+    backend = cfg.get("input_backend", "auto")
+    errors: list = []
 
-                    return EvdevSource.open(prefer, grab=bool(cfg.get("grab")), families=families)
-                if name == "hidapi" and fam == "switch":
-                    from .switch_hid import HidSource
+    def evdev(fams):
+        from .linux_evdev import EvdevSource
 
-                    return HidSource.open(
-                        prefer if prefer not in ("ps4", "ps5") else "auto",
-                        gyro_scale=float(cfg["gyro_dps_per_lsb"]),
-                        accel_scale=float(cfg["accel_g_per_lsb"]),
-                    )
-                if name == "hidapi" and fam == "playstation":
-                    from .ps_hid import PsHidSource
+        return EvdevSource.open(prefer, grab=bool(cfg.get("grab")), families=fams)
 
-                    return PsHidSource.open(prefer)
-                if name not in ("evdev", "hidapi"):
-                    raise ValueError(f"backend de entrada desconhecido: {name}")
-            except (ImportError, NoDeviceFound, OSError) as exc:
-                errors.append(f"{name}{'/' + fam if fam else ''}: {exc}")
+    def switch_hid():
+        from .switch_hid import HidSource
+
+        return HidSource.open(prefer if prefer not in ("ps4", "ps5") else "auto",
+                              gyro_scale=float(cfg["gyro_dps_per_lsb"]), accel_scale=float(cfg["accel_g_per_lsb"]))
+
+    def sdl():
+        from .sdl_source import SdlSource
+
+        return SdlSource.open(prefer)
+
+    def ps_hid():
+        from .ps_hid import PsHidSource
+
+        return PsHidSource.open(prefer)
+
+    # Ordem de tentativa: o caminho mais preciso de cada família primeiro.
+    plan = []
+    use_evdev = linux and backend in ("auto", "evdev")
+    use_hid = backend in ("auto", "hidapi")
+    if src in ("auto", "switch"):
+        if use_evdev:
+            plan.append(("evdev/switch", lambda: evdev(("switch",))))
+        if use_hid:
+            plan.append(("hidapi/switch", switch_hid))
+    if src in ("auto", "playstation"):
+        if use_evdev:
+            plan.append(("evdev/playstation", lambda: evdev(("playstation",))))
+        plan.append(("sdl", sdl))
+        if use_hid and not linux:
+            plan.append(("hidapi/playstation", ps_hid))
+    if src == "gamepad" or (src == "auto"):
+        if ("sdl", sdl) not in plan:
+            plan.append(("sdl", sdl))
+    for label, fn in plan:
+        s = _try(errors, label, fn)
+        if s is not None:
+            return s
     raise NoDeviceFound("nenhum controle com giroscópio encontrado.\n  " + "\n  ".join(errors))
 
 
@@ -61,10 +94,10 @@ def list_all() -> list:
             out += [("evdev", d) for d in ev_list()]
         except ImportError as exc:
             out.append(("evdev", f"indisponível: {exc}"))
-    for mod in ("switch_hid", "ps_hid"):
+    for mod in ("switch_hid", "ps_hid", "sdl_source"):
         try:
             m = __import__(f"lightgun_joypad.inputs.{mod}", fromlist=["list_devices"])
-            out += [("hidapi", d) for d in m.list_devices()]
+            out += [("sdl" if mod == "sdl_source" else "hidapi", d) for d in m.list_devices()]
         except ImportError as exc:
             out.append(("hidapi", f"indisponível: {exc}"))
     return out

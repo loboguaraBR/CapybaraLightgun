@@ -116,8 +116,9 @@ F = dict
 FIELDS = {
     "Controle": [
         F(p="input_source", t="select", l="Fonte da mira",
-          h="Controle com giroscópio (Joy-Con, Pro Controller, DualSense, DualShock 4) ou o mouse comum. "
-            "Com o mouse, a saída é sempre a light gun virtual (modo driver).",
+          h="Joy-Con/Pro Controller (o mais preciso), DualSense, DualShock 4, outros com giroscópio "
+            "(Steam Deck/Controller, 8BitDo…) ou o mouse do sistema para quem não tem controle. "
+            "Controles de Xbox comuns não têm giroscópio: use o mouse.",
           o=list(SOURCES.items())),
         F(p="rumble.enabled", t="check", l="Coice (vibração no tiro)",
           h="Vibra o controle a cada tiro, como o recuo de uma arma. Joy-Con, Pro, DualSense e DS4 no Linux."),
@@ -682,8 +683,11 @@ jogos de PC com mira por mouse.</li>
 <ul>
 <li><b>DualSense (PS5) / DualShock 4 (PS4)</b>: pareie por Bluetooth ou USB; aponte a <b>frente do controle</b> (a barra de luz)
 para a tela. R2 = gatilho, R1 = recarregar, □ = recentrar.</li>
-<li><b>Mouse comum</b>: escolha a fonte <i>Mouse comum</i> (aba Controle) ou o perfil pronto. O emulador recebe uma light gun
-com recarregar (botão direito), tiro automático e teclas — útil para RetroArch no modo driver.</li>
+<li><b>Outros com giroscópio</b> (Steam Deck/Controller, 8BitDo e afins): fonte <i>Outro controle com giroscópio</i>.
+Segure com a frente apontada para a tela.</li>
+<li><b>Sem controle com giroscópio</b> (ex.: controle de Xbox): use a fonte <i>Mouse do sistema</i> (ou o perfil pronto).
+O mouse continua sendo o mouse, e o programa acrescenta os recursos de light gun: recarregar (botão direito = tiro fora
+da tela), tiro automático, teclas, mira na tela e perfis. No modo driver (Linux) o mouse também alimenta a light gun virtual.</li>
 </ul>
 <h3>Perfis automáticos</h3>
 <p>Na aba Perfis, escreva palavras do nome da janela do jogo (ex.: <code>retroarch</code>, <code>mame</code>). O perfil
@@ -1175,7 +1179,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.i_mode.setText("mouse giroscópio" if s["mode"] == "relative" else "light gun (absoluto)")
         self.t_driver.setChecked(s["target"] == "lightgun")
         self.t_mouse.setChecked(s["target"] != "lightgun")
-        self.t_mouse.setEnabled(s["source"] != "mouse")
         self.t_cross.setChecked(s["overlay_on"])
         self.b_cal.setEnabled(s["source"] != "mouse")
         self.b_cal.setToolTip("" if s["source"] != "mouse" else "O mouse comum não precisa de calibração.")

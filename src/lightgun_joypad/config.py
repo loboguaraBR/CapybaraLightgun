@@ -9,8 +9,9 @@ import threading
 from pathlib import Path
 
 DEFAULTS: dict = {
-    # Fonte da mira: "auto" (controle com giroscópio: Switch ou PlayStation),
-    # "switch", "playstation" ou "mouse" (mouse comum vira light gun).
+    # Fonte da mira: "auto" (qualquer controle com giroscópio), "switch",
+    # "playstation", "gamepad" (outros com giroscópio, via SDL) ou "mouse"
+    # (mouse do sistema, para quem não tem controle com giroscópio).
     "input_source": "auto",
     # Entrada: "auto" | "evdev" (Linux, drivers do kernel) | "hidapi"
     "input_backend": "auto",
@@ -67,7 +68,7 @@ DEFAULTS: dict = {
     # Recarregar como numa light gun de verdade:
     #   offscreen_aim: apertar o gatilho mirando FORA da tela = tiro fora da tela
     #   shake: um tranco forte na arma (> shake_g) também recarrega
-    "reload": {"offscreen_aim": True, "offscreen_margin": 0.02, "shake": False, "shake_g": 2.5},
+    "reload": {"offscreen_aim": False, "offscreen_margin": 0.02, "shake": False, "shake_g": 2.5},
     # Coice: vibração curta a cada tiro (Joy-Con/Pro/DualSense/DS4 no Linux).
     "rumble": {"enabled": True, "ms": 45, "strength": 0.7},
     # Mira desenhada na tela (útil no modo driver, em jogos sem mira).
@@ -162,9 +163,8 @@ PRESETS: dict = {
         "aim": dict(DEFAULTS["aim"], jitter_lock=0.0015),
         "shot": {"lookback_ms": 35, "freeze_ms": 90},
     },
-    "Mouse comum como light gun": {
+    "Mouse do sistema (sem controle)": {
         "input_source": "mouse",
-        "output_target": "lightgun",
         "motion": {"interp_ms": 0, "output_hz": 250, "max_extrap_ms": 0},
         "smoothing": {"enabled": False, "min_cutoff": 1.2, "beta": 6.0, "d_cutoff": 1.0},
         "shot": {"lookback_ms": 0, "freeze_ms": 0},

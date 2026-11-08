@@ -18,10 +18,8 @@ from .outputs import OutputProxy
 def effective_config(store: ConfigStore, name: str | None = None) -> dict:
     """Config do perfil, com as combinações impossíveis corrigidas."""
     cfg = store.effective(name)
-    if cfg.get("input_source") == "mouse":
-        # Mouse comum -> light gun: a saída não pode ser o próprio mouse
-        # (o cursor se realimentaria e cada clique sairia dobrado).
-        cfg["output_target"] = "lightgun"
+    if not sys.platform.startswith("linux"):
+        cfg["output_target"] = "mouse"  # o modo driver só existe no Linux
     return cfg
 
 
@@ -54,11 +52,6 @@ class ClientApp:
     def controller_loop(self) -> None:
         while not self.stop.is_set():
             cfg = effective_config(self.store)
-            if cfg.get("input_source") == "mouse" and not sys.platform.startswith("linux"):
-                self.connected = False
-                self.status = "mouse como light gun só existe no Linux (precisa do modo driver)"
-                self.stop.wait(2.0)
-                continue
             try:
                 src = open_source(cfg)
             except NoDeviceFound as exc:

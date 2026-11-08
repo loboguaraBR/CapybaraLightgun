@@ -50,7 +50,7 @@ New-Item -ItemType Directory -Force -Path $Dest | Out-Null
 $vpy = Join-Path $Venv "Scripts\python.exe"
 $vpyw = Join-Path $Venv "Scripts\pythonw.exe"
 & $vpy -m pip install -q --upgrade pip
-Say "Instalando o programa (hidapi, PyQt5, pygame)"
+Say "Instalando o programa (hidapi, PyQt5, SDL2, pygame)"
 & $vpy -m pip install -q "$Src[sim]"
 if ($LASTEXITCODE -ne 0) { throw "falha no pip install" }
 Copy-Item (Join-Path $PSScriptRoot "uninstall.ps1") (Join-Path $Dest "uninstall.ps1") -Force
@@ -75,7 +75,7 @@ Say "Registrando em Aplicativos instalados"
 $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\LightGunJoypad"
 New-Item -Path $key -Force | Out-Null
 Set-ItemProperty $key DisplayName "Light Gun Joypad"
-Set-ItemProperty $key DisplayVersion "0.4.0"
+Set-ItemProperty $key DisplayVersion "0.5.0"
 Set-ItemProperty $key Publisher "lightgun-joypad"
 Set-ItemProperty $key InstallLocation $Dest
 Set-ItemProperty $key DisplayIcon "$vpyw,0"

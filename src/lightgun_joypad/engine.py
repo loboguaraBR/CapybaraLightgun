@@ -19,6 +19,10 @@ from .inputs import ButtonState, ImuSample, PointerSample
 
 DEG = math.pi / 180.0
 REL_COUNTS = (1920.0, 1080.0)  # "pixels" por tela inteira no modo relativo
+# Fonte "mouse do sistema" com saída no próprio mouse: o clique físico já chega
+# ao jogo, então a ação equivalente não é repetida (sem clique dobrado).
+_NATIVE = {"MOUSE_LEFT": "left", "MOUSE_RIGHT": "right", "MOUSE_MIDDLE": "middle"}
+_CLICK_OF = {"trigger": "left", "mouse_left": "left", "mouse_right": "right", "mouse_middle": "middle"}
 
 
 def homography_from(cfg: dict, calib: dict | None) -> Homography:
@@ -160,7 +164,7 @@ class LightGun:
         self.mode = mode
         self.rel_speed = float(cfg.get("relative_speed", 1.0))
         rl = cfg.get("reload", {})
-        self.reload_offscreen = bool(rl.get("offscreen_aim", True))
+        self.reload_offscreen = bool(rl.get("offscreen_aim", False))
         self.offscreen_margin = float(rl.get("offscreen_margin", 0.02))
         self.reload_shake = bool(rl.get("shake", False))
         self.shake_g = float(rl.get("shake_g", 2.5))
@@ -292,6 +296,11 @@ class LightGun:
             return
         self._on_aim(xy, st, now)
 
+    @property
+    def passthrough(self) -> bool:
+        """Mouse do sistema como fonte E como saída: o cursor já está lá."""
+        return self.pointer_mode and self.cfg.get("output_target", "mouse") == "mouse"
+
     def on_pointer(self, p: PointerSample, now: float) -> None:
         """Fonte "mouse comum": a posição já vem em coordenadas de tela."""
         self.pointer_mode = True
@@ -310,7 +319,7 @@ class LightGun:
         self.onscreen = not self.outside
         self.pos = (x, y)
         self.history.append((st, x, y))
-        if self.can_move(now):
+        if self.can_move(now) and not self.passthrough:
             self.out.move(x, y)
             self._last_out = (x, y)
 
@@ -437,6 +446,15 @@ class LightGun:
         if act == "trigger" and self.reload_offscreen and self.outside and not self.paused:
             act = "offscreen_shot"  # mirou fora da tela: recarrega, como numa arma real
         if self.paused and act in ("trigger", "offscreen_shot", "autofire"):
+            return
+        native = _NATIVE.get(name) if self.passthrough else None
+        if native and _CLICK_OF.get(act) == native:
+            # o clique físico já foi para o jogo: só registra o tiro
+            if act == "trigger":
+                self.last_shot = self.pos
+                self.shots += 1
+                self._kick()
+            self._held_actions[name] = "_native"
             return
         if act in ("trigger", "offscreen_shot", "autofire"):
             self.yield_until = 0.0  # atirou: a arma retoma o cursor

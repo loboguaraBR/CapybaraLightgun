@@ -52,7 +52,7 @@ def _gun(**over):
 
 
 def test_trigger_aiming_offscreen_reloads():
-    gun, out = _gun()
+    gun, out = _gun(reload={"offscreen_aim": True, "offscreen_margin": 0.02, "shake": False, "shake_g": 2.5})
     kicks = []
     gun.feedback = lambda ms, s: kicks.append(ms)
     a = target_euler(0.5, 0.5)
@@ -87,11 +87,28 @@ def test_mouse_pointer_source_maps_region():
     assert ("btn", "left", True) in out.log
 
 
-def test_mouse_source_forces_driver_output(tmp_path):
-    s = ConfigStore(tmp_path / "c.json")
-    s.create("m", "Mouse comum como light gun")
-    s.profiles["m"]["output_target"] = "mouse"
-    assert effective_config(s, "m")["output_target"] == "lightgun"
+def test_system_mouse_passthrough_no_double_clicks():
+    """Sem controle: mouse do sistema como fonte E saída (Windows ou modo mouse)."""
+    gun, out = _gun(output_target="mouse")
+    gun.on_pointer(PointerSample(0.3, 0.4, 0.004), 0.0)
+    assert not any(x[0] == "move" for x in out.log)  # o cursor já está lá
+    gun.on_buttons(ButtonState(frozenset({"MOUSE_LEFT"})), 0.01)
+    gun.on_buttons(ButtonState(frozenset()), 0.05)
+    assert not any(x[0] == "btn" for x in out.log)  # clique físico já foi; não dobra
+    assert gun.shots == 1
+    # botão direito = tiro fora da tela: vai ao canto, clica e volta
+    gun.on_buttons(ButtonState(frozenset({"MOUSE_RIGHT"})), 0.1)
+    gun.on_buttons(ButtonState(frozenset()), 0.2)
+    ox, oy = DEFAULTS["offscreen_position"]
+    assert out.log == [("move", ox, oy), ("btn", "left", True), ("btn", "left", False), ("move", 0.3, 0.4)]
+
+
+def test_sdl_sample_conversion():
+    from lightgun_joypad.inputs.sdl_source import sdl_to_sample
+
+    s = sdl_to_sample((0.0, 1.0, 0.0), (0.0, 9.80665, 0.0), 0.004)  # deitado; girando p/ esquerda
+    assert s.accel_g == (0.0, -0.0, 1.0)
+    assert abs(s.gyro_dps[2] - 57.29578) < 1e-3
 
 
 def test_auto_profile_switch(tmp_path):

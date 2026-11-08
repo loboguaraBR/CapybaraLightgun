@@ -57,7 +57,7 @@
     "freeze_ms": 60
   },
   "reload": {
-    "offscreen_aim": true,
+    "offscreen_aim": false,
     "offscreen_margin": 0.02,
     "shake": false,
     "shake_g": 2.5
