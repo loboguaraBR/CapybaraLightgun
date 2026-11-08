@@ -159,6 +159,7 @@ def main(argv=None) -> int:
     sub.add_parser("calibrate", help="calibração guiada (centro + 4 cantos)")
     sub.add_parser("buttons", help="mostra o nome dos botões apertados")
     sub.add_parser("devices", help="lista controles detectados")
+    sub.add_parser("selftest", help="autoteste do sistema (não precisa de controle)")
     sub.add_parser("init-config", help="cria o arquivo de config com os valores padrão")
     args = ap.parse_args(argv)
     if args.cmd is None:
@@ -171,6 +172,7 @@ def main(argv=None) -> int:
     handlers = {
         "run": _cmd_run, "calibrate": _cmd_calibrate, "buttons": _cmd_buttons,
         "devices": _cmd_devices, "sim": _cmd_sim,
+        "selftest": lambda a, c: __import__("lightgun_joypad.selftest", fromlist=["run"]).run(),
         "gui": _cmd_gui, "client": _cmd_gui, "panel": _cmd_gui, "init-config": _cmd_init_config,
     }
     return handlers[args.cmd](args, cfg)

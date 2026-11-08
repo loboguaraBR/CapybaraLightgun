@@ -11,7 +11,7 @@ def keys_in_config(cfg: dict) -> list:
 def open_output(cfg: dict, backend: str | None = None):
     backend = backend or cfg.get("output_backend", "auto")
     if backend == "auto":
-        backend = "sendinput" if sys.platform == "win32" else "uinput"
+        backend = {"win32": "sendinput", "darwin": "quartz"}.get(sys.platform, "uinput")
     region = cfg.get("region") or [0.0, 0.0, 1.0, 1.0]
     keys = keys_in_config(cfg)
     if backend == "uinput":
@@ -22,6 +22,10 @@ def open_output(cfg: dict, backend: str | None = None):
         from .windows_sendinput import SendInputOutput
 
         return SendInputOutput(region, keys, monitor=cfg.get("monitor"))
+    if backend == "quartz":
+        from .mac_quartz import QuartzOutput
+
+        return QuartzOutput(region, keys, monitor=cfg.get("monitor"))
     if backend == "console":
         from .console import ConsoleOutput
 
@@ -78,8 +82,8 @@ class OutputProxy:
                 self.real = open_output(cfg, self.backend)
                 self.error = ""
                 if cfg.get("output_target") == "lightgun" and not sys.platform.startswith("linux"):
-                    self.error = ("O modo 'só light gun' existe só no Linux (no Windows precisaria de um driver "
-                                  "de kernel). Usando o mouse do sistema.")
+                    self.error = ("O modo 'só light gun' existe só no Linux (no Windows e no Mac precisaria de "
+                                  "um driver do sistema). Usando o mouse do sistema.")
             except Exception as exc:
                 self.error = str(exc)
             self.sig = sig

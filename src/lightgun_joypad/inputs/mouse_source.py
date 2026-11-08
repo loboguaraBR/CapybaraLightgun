@@ -6,6 +6,7 @@ coordenadas absolutas, recarregar, tiro automático e teclas mapeadas.
 
 Botões: MOUSE_LEFT, MOUSE_RIGHT, MOUSE_MIDDLE (e MOUSE_X1/X2 no Windows).
 Linux: X11 (XQueryPointer, sem root). Wayland não permite ler o cursor global.
+macOS: Quartz (posição) + estado físico dos botões.
 """
 from __future__ import annotations
 
@@ -95,13 +96,38 @@ class _Win:
         pass
 
 
+class _Mac:
+    def __init__(self):
+        from .. import macos
+
+        self.m = macos
+        self.area = macos.desktop()
+        self._n = 0
+
+    def query(self):
+        m = self.m
+        self._n += 1
+        if self._n % 500 == 0:  # telas podem mudar (monitor conectado/desligado)
+            self.area = m.desktop()
+        cx, cy = m.cursor()
+        ax, ay, aw, ah = self.area
+        names = set()
+        for i, n in ((0, "MOUSE_LEFT"), (1, "MOUSE_RIGHT"), (2, "MOUSE_MIDDLE"), (3, "MOUSE_X1"), (4, "MOUSE_X2")):
+            if m.button_down(i):
+                names.add(n)
+        return (cx - ax) / max(1.0, aw - 1), (cy - ay) / max(1.0, ah - 1), frozenset(names)
+
+    def close(self):
+        pass
+
+
 class MouseSource:
     family = "mouse"
     kind = "mouse"
     name = "mouse do sistema"
 
     def __init__(self, rate_hz: float = 250.0):
-        self.api = _Win() if sys.platform == "win32" else _X11()
+        self.api = _Win() if sys.platform == "win32" else _Mac() if sys.platform == "darwin" else _X11()
         self.period = 1.0 / rate_hz
         self._closed = False
 

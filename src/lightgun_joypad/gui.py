@@ -692,6 +692,10 @@ da tela), tiro automático, teclas, mira na tela e perfis. No modo driver (Linux
 <h3>Perfis automáticos</h3>
 <p>Na aba Perfis, escreva palavras do nome da janela do jogo (ex.: <code>retroarch</code>, <code>mame</code>). O perfil
 é ativado sozinho quando o jogo está em primeiro plano.</p>
+<h3>macOS</h3>
+<p>Libere o aplicativo em <b>Ajustes do Sistema → Privacidade e Segurança</b>: <b>Acessibilidade</b> (mover o cursor e
+clicar) e <b>Monitoramento de Entrada</b> (ler o controle). O botão amarelo na coluna "Ao vivo" abre essas telas. No Mac só
+existe o modo <i>Mouse do sistema</i>.</p>
 <h3>Bluetooth</h3>
 <p>O Bluetooth do notebook divide o rádio com o Wi-Fi: se a mira travar às vezes, prefira Wi-Fi 5 GHz, aproxime o controle
 ou use um adaptador Bluetooth USB.</p>
@@ -801,6 +805,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.b_bias = QtWidgets.QPushButton("⟲  Medir giroscópio")
         self.b_calreset = QtWidgets.QPushButton("Apagar calibração")
         self.b_quit = QtWidgets.QPushButton("⏻  Encerrar")
+        self.b_perm = QtWidgets.QPushButton("⚠  Liberar permissões do macOS")
+        self.b_perm.setObjectName("primary")
+        self.b_perm.setVisible(False)
+        lv.addWidget(self.b_perm)
+        self.perm_label = QtWidgets.QLabel("")
+        self.perm_label.setWordWrap(True)
+        self.perm_label.setVisible(False)
+        lv.addWidget(self.perm_label)
         btns = [self.b_cal, self.b_test, self.b_rec, self.b_pause, self.b_recon, self.b_bias, self.b_calreset, self.b_quit]
         for i, b in enumerate(btns):
             grid.addWidget(b, i // 2, i % 2)
@@ -827,6 +839,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.b_bias.clicked.connect(self.app.reset_bias)
         self.b_calreset.clicked.connect(self._cal_reset)
         self.b_quit.clicked.connect(self.quit_app)
+        self.b_perm.clicked.connect(self._request_perms)
+        self._perm_tick = 0
 
         self.save_timer = QtCore.QTimer(self, singleShot=True, interval=250, timeout=self._save)
         self.live_timer = QtCore.QTimer(self, interval=16, timeout=self._live)
@@ -1082,6 +1096,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self._save()
         self._build_tabs()
 
+    def _request_perms(self) -> None:
+        from . import macos
+
+        macos.request_permissions()
+        QtWidgets.QMessageBox.information(
+            self, "Permissões do macOS",
+            "Em Ajustes do Sistema → Privacidade e Segurança, ative o \"Light Gun Joypad\" em:\n\n"
+            "• Acessibilidade — para a arma mover o cursor e clicar\n"
+            "• Monitoramento de Entrada — para ler o controle em segundo plano\n\n"
+            "Depois, encerre e abra o aplicativo de novo.")
+
+    def _check_perms(self) -> None:
+        if sys.platform != "darwin":
+            return
+        self._perm_tick += 1
+        if self._perm_tick % 60 != 1:  # ~2 s
+            return
+        from . import macos
+
+        missing = macos.missing_permissions()
+        self.b_perm.setVisible(bool(missing))
+        self.perm_label.setVisible(bool(missing))
+        if missing:
+            self.perm_label.setText("<span style='color:#fbbf24'>Falta permissão do macOS: " + ", ".join(missing)
+                                    + ". Sem ela a arma não move o cursor / não lê o controle.</span>")
+
     def _toggle_overlay(self) -> None:
         on = not self.app.gun.overlay_on
         self.app.gun.overlay_on = on
@@ -1148,6 +1188,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _live(self) -> None:
         s = self.app.state()
         self._check_yield(s)
+        self._check_perms()
         tray = getattr(self, "tray", None)
         if tray is not None:
             tray.update_state(s)

@@ -2,6 +2,7 @@
 
 Usado para trocar de perfil automaticamente conforme o jogo aberto.
 Linux/X11: xprop. Windows: GetForegroundWindow + nome do executável.
+macOS: lsappinfo (nome do aplicativo em primeiro plano, sem permissões extras).
 """
 from __future__ import annotations
 
@@ -15,6 +16,8 @@ def active_window_text() -> str:
     try:
         if sys.platform == "win32":
             return _windows()
+        if sys.platform == "darwin":
+            return _mac()
         if os.environ.get("DISPLAY") and shutil.which("xprop"):
             return _x11()
     except Exception:
@@ -54,3 +57,12 @@ def _windows() -> str:
             exe = os.path.basename(pbuf.value)
         k.CloseHandle(h)
     return f"{exe} {title}"
+
+
+def _mac() -> str:
+    asn = subprocess.run(["lsappinfo", "front"], capture_output=True, text=True, timeout=1).stdout.strip()
+    if not asn:
+        return ""
+    info = subprocess.run(["lsappinfo", "info", "-only", "name", "-only", "bundleid", asn],
+                          capture_output=True, text=True, timeout=1).stdout
+    return info.replace("\n", " ")

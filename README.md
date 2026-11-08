@@ -77,6 +77,25 @@ põe o aplicativo para abrir com o Windows (na bandeja) e registra o programa em
 > Feche o Steam (ou desative o "Switch Pro Configuration Support"), o BetterJoy
 > e o DS4Windows: eles disputam o controle.
 
+### macOS (experimental)
+
+1. Instale o Python 3.9+ (python.org ou `brew install python`).
+2. Dê dois cliques em `installer/macos/Instalar.command`.
+3. No aplicativo, clique em **⚠ Liberar permissões do macOS** e ative o
+   "Light Gun Joypad" em **Acessibilidade** e **Monitoramento de Entrada**.
+   Depois, abra o aplicativo de novo.
+
+O instalador cria `~/Applications/Light Gun Joypad.app` e faz o aplicativo
+abrir sozinho no login, com o ícone na barra de menus. No Mac só existe o modo
+*Mouse do sistema*. Joy-Con e Pro Controller funcionam por HID; DualSense,
+DualShock 4 e outros, pelo SDL.
+
+O suporte foi feito sem um Mac à mão. Os testes automáticos rodam em Macs
+virtuais (veja `.github/workflows/testes.yml`), mas Bluetooth, permissões e
+cursor ainda precisam ser confirmados num Mac de verdade: o roteiro está em
+[`docs/TESTE-MAC.md`](docs/TESTE-MAC.md). Para conferir o sistema a qualquer
+momento, rode `lightgun-joypad selftest`.
+
 ## O aplicativo
 
 **Light Gun Joypad** é um programa de janela próprio (Qt), que funciona sem
@@ -124,8 +143,8 @@ controle, porque os dois disputam o dispositivo.
 | **🎯 Só light gun (driver)**, padrão no Linux | Cria o dispositivo "Joypad Light Gun (driver)", que a área de trabalho **ignora**: o cursor e o touchpad ficam livres. | RetroArch com driver de entrada **udev** (Light Gun → dispositivo "Joypad Light Gun (driver)") |
 | **🖱 Mouse do sistema** | A arma move o cursor. Se você mexer no touchpad ou no mouse, a arma **cede** o cursor por alguns segundos e retoma quando você atira. | Qualquer jogo/emulador (MAME, Dolphin, jogos de PC) |
 
-No Windows só existe o modo mouse: um dispositivo de light gun separado
-precisaria de um driver de kernel.
+No Windows e no macOS só existe o modo mouse: um dispositivo de light gun
+separado precisaria de um driver do sistema.
 
 - **Ao vivo:** mira em tempo real (a bolinha cinza é a mira sem filtro),
   botões apertados, estado do giroscópio e da calibração.
