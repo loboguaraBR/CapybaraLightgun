@@ -1,4 +1,4 @@
-"""Linha de comando: lightgun-joypad [run|calibrate|buttons|devices|init-config]."""
+"""Linha de comando: capybara-lightgun [run|calibrate|buttons|devices|init-config]."""
 from __future__ import annotations
 
 import argparse
@@ -23,7 +23,7 @@ def _cmd_run(args, cfg) -> int:
     else:
         s = cfg["screen"]
         print(f"sem calibração: usando geometria {s['width_m']}x{s['height_m']} m a {s['distance_m']} m "
-              "(rode `lightgun-joypad calibrate` para mira exata)")
+              "(rode `capybara-lightgun calibrate` para mira exata)")
     out = open_output(cfg, "console" if args.dry_run else None)
     print(f"saída: {out.name}")
     recenter_btns = [k for k, v in cfg["buttons"].items() if v == "recenter"]
@@ -138,7 +138,7 @@ def _cmd_init_config(args, cfg) -> int:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(prog="lightgun-joypad", description="Joy-Con / Pro Controller como light gun (gyro).")
+    ap = argparse.ArgumentParser(prog="capybara-lightgun", description="Joy-Con / Pro Controller como light gun (gyro).")
     ap.add_argument("--version", action="version", version=__version__)
     ap.add_argument("--config", help=f"arquivo de config (padrão: {default_config_path()})")
     ap.add_argument("--calibration", help=f"arquivo de calibração (padrão: {default_calibration_path()})")
@@ -172,7 +172,7 @@ def main(argv=None) -> int:
     handlers = {
         "run": _cmd_run, "calibrate": _cmd_calibrate, "buttons": _cmd_buttons,
         "devices": _cmd_devices, "sim": _cmd_sim,
-        "selftest": lambda a, c: __import__("lightgun_joypad.selftest", fromlist=["run"]).run(),
+        "selftest": lambda a, c: __import__("capybara_lightgun.selftest", fromlist=["run"]).run(),
         "gui": _cmd_gui, "client": _cmd_gui, "panel": _cmd_gui, "init-config": _cmd_init_config,
     }
     return handlers[args.cmd](args, cfg)

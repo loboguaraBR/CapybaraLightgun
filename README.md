@@ -1,320 +1,337 @@
-# lightgun-joypad
+# Capybara Lightgun
 
-Transforma um **Joy-Con** ou **Pro Controller** do Nintendo Switch, um
-**DualSense (PS5)** ou **DualShock 4 (PS4)**, ou até o **mouse comum**, numa
-**light gun absoluta**, no **Linux** e no **Windows**, usando o giroscópio e o
-acelerômetro do controle.
+**English** · [Português (Brasil)](README.pt-BR.md)
 
-Absoluta quer dizer que a mira vai **para onde o cano aponta**, como uma arma
-de verdade, e não "arrasta" o cursor como um mouse. Se você mirar no canto
-superior esquerdo da TV, a mira vai para o canto superior esquerdo, mesmo de
-olhos fechados e sem cursor na tela.
+Capybara Lightgun turns **any device with a gyroscope** into an **absolute
+pointer**, a light gun that aims where you physically point. It runs on
+**Linux**, **Windows** and **macOS** (experimental), and it can also use the
+**system mouse** when no gyroscope device is available.
 
-## Como funciona
+> **Gyroscope first, device-agnostic.** The project is about the gyroscope
+> as a sensor, not about any brand or product. It reads angular velocity and
+> acceleration from whatever device exposes them through the operating system
+> (game controllers today, other IMU devices tomorrow) and turns them into a
+> calibrated, physically accurate aim. Device names in this document only say
+> what is known to work. They are not a preference or an endorsement.
+
+---
+
+## Contents
+
+- [Why this project exists](#why-this-project-exists)
+- [What it does](#what-it-does)
+- [How it works](#how-it-works)
+- [Supported inputs, outputs and platforms](#supported-inputs-outputs-and-platforms)
+- [Installation](#installation)
+- [Using the app](#using-the-app)
+- [For developers: a gyroscope test bench](#for-developers-a-gyroscope-test-bench)
+- [Project layout and tests](#project-layout-and-tests)
+- [Translations](#translations)
+- [License (MIT): what it means](#license-mit-what-it-means)
+- [Disclaimer and legal notices](#disclaimer-and-legal-notices)
+
+---
+
+## Why this project exists
+
+Capybara Lightgun is a **personal, educational, non-profit project**. It was
+created to:
+
+1. **Help developers test gyroscope features quickly.** If you are building an
+   app, game, emulator, accessibility tool or research prototype that uses
+   motion or gyro aiming, you can use this project as a ready-made test bench.
+   It reads real IMU data, fuses it into an orientation, maps it to the screen
+   and delivers it as standard mouse or pointer events that your application
+   already understands, so you don't have to write a driver first.
+2. **Make light-gun-style aiming accessible** with hardware people already
+   own, on modern displays where classic CRT light guns no longer work.
+3. **Share the techniques openly** (sensor fusion, calibration through a
+   projective transform, low-latency smoothing) so others can learn from them
+   and improve them.
+
+It is **not** meant to make money, compete with any product, or harm anyone.
+That is why it is released under the permissive **MIT License** (see below).
+
+## What it does
+
+- **Absolute aiming:** the cursor goes exactly where the device points, like a
+  real light gun, not like a relative "gyro mouse". Rolling the wrist does not
+  move the aim.
+- **Calibration:** aim at the screen center and the 4 corners. The mapping is
+  a homography, so the aim stays correct even if you are off-axis or the
+  screen is tilted.
+- **Smooth, low-latency motion:** the cursor updates at a fixed rate (250 Hz
+  by default), interpolated on the sensor's own clock. This hides Bluetooth
+  bursts and stalls. An adaptive "One Euro" filter removes hand tremor without
+  adding lag to fast movements.
+- **Shot stabilization:** the shot uses the aim position from a few
+  milliseconds before the trigger press, so the finger's jerk doesn't move it.
+- **Drift handling:** the gyroscope bias is re-estimated whenever the device
+  rests still, and a one-button recenter is available.
+- **Two output modes:**
+  - **Light gun only (driver)**, Linux only: a separate virtual light gun
+    device that the desktop ignores. The system cursor and touchpad stay free,
+    and emulators that read input devices directly (e.g. RetroArch with the
+    `udev` driver) use it.
+  - **System mouse:** moves the real cursor and works with anything. It
+    automatically gives the cursor back while you use the touchpad or mouse.
+- **Light gun extras:** off-screen reload (optional), reload by jerking the
+  device (optional), auto-fire, keyboard keys on any button, rumble "recoil",
+  an on-screen crosshair overlay, and per-game profiles that switch
+  automatically based on the active window.
+- **Desktop app:** a native window with a tray or menu-bar icon, a live
+  preview, a full-screen calibration and test range, in 6 languages.
+- **Works without a gyroscope too:** with the **system mouse** as the input
+  source, users without a gyro device still get the light gun features
+  (reload, auto-fire, keys, overlay, profiles).
+
+## How it works
 
 ```
-giroscópio + acelerômetro ──► orientação 3D (filtro Mahony, ~200 amostras/s)
+gyroscope + accelerometer ──► orientation (Mahony filter, gravity-corrected)
         │
         ▼
-direção do cano ──► interseção com um plano ──► homografia calibrada ──► (x, y) da tela
-        │                                                                    │
-        ▼                                                                    ▼
- filtro One Euro (tira o tremor sem atrasar)                mouse ABSOLUTO virtual
-                                                (uinput no Linux / SendInput no Windows)
+barrel direction ──► ray / plane intersection ──► calibrated homography ──► (x, y) on screen
+        │                                                                     │
+        ▼                                                                     ▼
+ One Euro filter + fixed-rate interpolation                     absolute pointer output
+                                                    (uinput on Linux · SendInput on Windows · Quartz on macOS)
 ```
 
-- **Mira física**: a direção do cano é projetada como um raio. Visto de um ponto
-  fixo, a relação entre esse raio e a tela real é exatamente uma *homografia*.
-  Por isso a calibração por **centro + 4 cantos** fica correta mesmo com você
-  fora do eixo da TV, sentado mais baixo, com a TV inclinada etc.
-- **Girar o pulso não mexe a mira**: o roll é descartado porque a mira é
-  calculada pela gravidade, como numa arma real.
-- **Fluidez**: usa as 3 amostras de IMU de cada pacote (~5 ms cada), com o
-  tempo do próprio sensor. O filtro **One Euro** segura a mira quando você está
-  parado e sai do caminho nos movimentos rápidos.
-- **Tranco do gatilho**: ao atirar, o clique usa a posição de 25 ms antes e
-  congela a mira por 60 ms, para o tranco do dedo não desviar o tiro.
-- **Deriva**: o Switch não tem bússola, então o yaw (esquerda/direita) pode
-  escorregar com o tempo. Duas coisas resolvem:
-  1. o bias do giroscópio é medido sozinho sempre que o controle fica
-     **apoiado parado** por ~1 s (por exemplo, na mesa entre as fases);
-  2. o botão **recentrar** (Y / ← por padrão): mire no centro da tela e aperte.
-  Para cima/baixo não deriva, porque a gravidade corrige.
+- Sensor axes from each device family are converted to one internal
+  convention (X = barrel, Y = left, Z = up). Device-specific code is limited
+  to reading the sensor; everything after that is shared.
+- No yaw reference exists without a magnetometer, so horizontal drift is
+  handled with automatic bias estimation and a recenter button.
 
-## Instalação
+## Supported inputs, outputs and platforms
 
-### Linux
+**Inputs (aim sources)**, chosen automatically or in the app:
 
+| Source | How it is read | Notes |
+|---|---|---|
+| Nintendo Switch Joy-Con / Pro Controller | Linux kernel driver (`hid-nintendo`, evdev) · raw HID elsewhere | Most tested path |
+| DualSense (PS5) / DualShock 4 (PS4) | Linux kernel driver · SDL | Point the front of the controller at the screen |
+| Other controllers with a gyroscope | SDL (generic sensor API) | e.g. Steam Deck/Controller, 8BitDo models with gyro |
+| System mouse | OS cursor position and buttons | For users without a gyro device |
+
+Controllers without a gyroscope, such as most standard Xbox controllers,
+can't aim. The app says so and suggests the mouse.
+
+**Outputs:** virtual light gun device (Linux), system mouse (Linux, Windows,
+macOS), gyro-mouse relative mode, keyboard keys.
+
+**Platforms:** Linux (X11; tested), Windows (implemented, not yet validated on
+real hardware), macOS (experimental, see [`docs/TESTE-MAC.md`](docs/TESTE-MAC.md)).
+CI runs the test suite on Linux, Windows and macOS.
+
+## Installation
+
+Requires Python 3.9+. Each installer creates its own isolated environment and
+doesn't touch your system Python.
+
+**Linux**
 ```bash
 ./installer/linux/install.sh
 ```
+It may ask for your password once, to install a udev rule (device
+permissions) and set BlueZ `ClassicBondedOnly=false`, which is needed by
+controllers such as Joy-Cons. See [changes made to your system](#changes-made-to-your-system).
 
-O instalador:
-- ajusta o Bluetooth para aceitar o Joy-Con e as permissões (pede a senha 1 vez);
-- cria um ambiente Python próprio em `~/.local/share/lightgun-joypad`;
-- cria o aplicativo **Light Gun Joypad** no menu e o faz abrir sozinho, na
-  bandeja do sistema, quando você entra no Linux;
-- cria também o atalho do **Simulador**.
+**Windows:** double-click `installer\windows\Instalar.bat` (no administrator
+rights needed; installs Python through `winget` if missing).
 
-Desinstalar: `~/.local/share/lightgun-joypad/uninstall.sh`.
+**macOS (experimental):** double-click `installer/macos/Instalar.command`, then
+allow the app under *System Settings → Privacy & Security → Accessibility* and
+*Input Monitoring*.
 
-> **O Joy-Con conecta no Bluetooth mas as luzes ficam piscando?** O BlueZ
-> rejeita controles sem *bonding* (`Rejected connection from !bonded device`).
-> O instalador já corrige; para corrigir à parte:
-> `sudo ./scripts/fix-linux-joycon.sh` e aperte um botão do Joy-Con.
+All installers add a menu/start entry and start the app at login (minimized
+to the tray). Uninstallers are included. A detailed user guide in Portuguese
+is available at [`docs/GUIA-pt-BR.md`](docs/GUIA-pt-BR.md).
 
-### Windows
+## Using the app
 
-1. Pareie o Joy-Con ou Pro Controller em *Configurações → Bluetooth*
-   (segure o botão de sync até as luzes correrem).
-2. Dê dois cliques em `installer\windows\Instalar.bat`.
+1. Rest the device still for ~1 s (the gyroscope status shows **ok**).
+2. Click **Calibrate**, aim at the center and the 4 corners, and pull the trigger.
+3. Pick the mode: **Light gun only (driver)** or **System mouse**.
+4. Try it in the **Test range** (full screen, with hit statistics).
 
-O instalador não precisa de administrador. Se faltar o Python, ele instala
-pelo `winget`. Depois cria os atalhos no Menu Iniciar e na Área de Trabalho,
-põe o aplicativo para abrir com o Windows (na bandeja) e registra o programa em
-*Aplicativos instalados*, de onde dá para desinstalar.
-
-> Feche o Steam (ou desative o "Switch Pro Configuration Support"), o BetterJoy
-> e o DS4Windows: eles disputam o controle.
-
-### macOS (experimental)
-
-1. Instale o Python 3.9+ (python.org ou `brew install python`).
-2. Dê dois cliques em `installer/macos/Instalar.command`.
-3. No aplicativo, clique em **⚠ Liberar permissões do macOS** e ative o
-   "Light Gun Joypad" em **Acessibilidade** e **Monitoramento de Entrada**.
-   Depois, abra o aplicativo de novo.
-
-O instalador cria `~/Applications/Light Gun Joypad.app` e faz o aplicativo
-abrir sozinho no login, com o ícone na barra de menus. No Mac só existe o modo
-*Mouse do sistema*. Joy-Con e Pro Controller funcionam por HID; DualSense,
-DualShock 4 e outros, pelo SDL.
-
-O suporte foi feito sem um Mac à mão. Os testes automáticos rodam em Macs
-virtuais (veja `.github/workflows/testes.yml`), mas Bluetooth, permissões e
-cursor ainda precisam ser confirmados num Mac de verdade: o roteiro está em
-[`docs/TESTE-MAC.md`](docs/TESTE-MAC.md). Para conferir o sistema a qualquer
-momento, rode `lightgun-joypad selftest`.
-
-## O aplicativo
-
-**Light Gun Joypad** é um programa de janela próprio (Qt), que funciona sem
-navegador e sem internet. Fechar a janela não encerra o programa: ele continua
-na **bandeja** (o ícone da mira perto do relógio). Pelo menu da bandeja dá para
-pausar, recentrar, calibrar, trocar de perfil ou encerrar. A cor do ícone
-mostra o estado: verde = ativa, amarelo = pausada ou giroscópio sem calibrar,
-cinza = sem controle. Tudo o que você muda vale na hora.
-
-### Idiomas
-
-O aplicativo está em **inglês** (padrão), **português (Brasil)**, **espanhol**,
-**francês**, **alemão** e **chinês simplificado**. A escolha fica salva e muda
-na hora, sem reiniciar.
-
-O seletor **🌐 Language**, no topo da janela e no menu da bandeja, fica
-**sempre em inglês**, e cada idioma aparece com o próprio nome ("English",
-"中文"…). Se alguém escolher um idioma por engano, basta procurar
-"🌐 Language" e clicar em "English".
-
-Para traduzir para outro idioma, copie `src/lightgun_joypad/locales/pt_BR.py`,
-traduza os textos, registre o código em `LANGUAGES` (`i18n.py`) e rode
-`pytest`. O teste `tests/test_i18n.py` aponta qualquer texto que faltar.
-
-### Fontes da mira (aba Controle)
-
-A emulação da light gun é a mesma para todas as fontes; o que muda é quem
-move a mira.
-
-| Fonte | Como mirar | Observações |
-|---|---|---|
-| **Joy-Con / Pro Controller** | Joy-Con em pé como pistola, ZR = gatilho | O caminho mais preciso. Linux e Windows |
-| **DualSense (PS5) / DualShock 4 (PS4)** | Aponte a **frente** do controle (barra de luz) para a tela; R2 = gatilho, R1 = recarregar, □ = recentrar | Linux (driver do kernel ou SDL) e Windows (SDL) |
-| **Outro controle com giroscópio** | Frente do controle apontada para a tela | Via SDL: Steam Deck/Controller, 8BitDo e outros com sensores |
-| **Mouse do sistema** | O próprio mouse | Para quem não tem controle com giroscópio, como os controles de Xbox comuns. O mouse segue sendo o mouse, sem cliques dobrados; o programa acrescenta recarregar (botão direito), tiro automático, teclas, mira na tela e perfis. No modo driver (Linux), também alimenta a light gun virtual |
-
-Em "Automático", o programa usa o primeiro controle com giroscópio que
-encontrar, com o Joy-Con/Pro Controller em primeiro lugar. O programa **não
-usa o Steam Input**. Se a Steam estiver aberta, desative o Steam Input para o
-controle, porque os dois disputam o dispositivo.
-
-### Recursos de arma
-
-- **Recarregar mirando fora da tela** (opcional, desligado por padrão):
-  apontou para fora e atirou, sai um "tiro fora da tela", como numa light gun
-  de verdade.
-- **Recarregar com um tranco:** um puxão forte na arma (opcional).
-- **Coice:** uma vibração curta a cada tiro (Joy-Con, Pro Controller,
-  DualSense e DS4 no Linux).
-- **Mira na tela:** desenha a mira por cima de tudo, para jogos sem mira no
-  modo driver.
-- **Perfis automáticos:** o perfil do jogo é ativado sozinho pela janela ativa
-  (ex.: `retroarch`, `mame`).
-- A aba **Ajuda** do aplicativo traz o passo a passo por emulador e dicas de precisão.
-
-### Os dois modos (botões no topo da janela)
-
-| Modo | O que acontece | Use com |
-|---|---|---|
-| **🎯 Só light gun (driver)**, padrão no Linux | Cria o dispositivo "Joypad Light Gun (driver)", que a área de trabalho **ignora**: o cursor e o touchpad ficam livres. | RetroArch com driver de entrada **udev** (Light Gun → dispositivo "Joypad Light Gun (driver)") |
-| **🖱 Mouse do sistema** | A arma move o cursor. Se você mexer no touchpad ou no mouse, a arma **cede** o cursor por alguns segundos e retoma quando você atira. | Qualquer jogo/emulador (MAME, Dolphin, jogos de PC) |
-
-No Windows e no macOS só existe o modo mouse: um dispositivo de light gun
-separado precisaria de um driver do sistema.
-
-- **Ao vivo:** mira em tempo real (a bolinha cinza é a mira sem filtro),
-  botões apertados, estado do giroscópio e da calibração.
-- **Calibrar:** em tela cheia, mire no centro e nos 4 cantos e aperte o ZR.
-- **Estande de teste:** alvos em tela cheia usando o mouse de verdade, para
-  testar o caminho completo. **H** esconde a mira.
-- **Mira:** sensibilidade X/Y, ajuste fino do ponto de impacto, estabilidade
-  parada, resposta a movimentos rápidos e trava de micro-movimento.
-- **Tiro:** compensação do tranco, congelamento após o tiro, velocidade do tiro
-  automático e para onde vai o "tiro fora da tela".
-- **Botões:** cada botão do controle pode virar gatilho, tiro automático,
-  recarregar, clique esquerdo/direito/do meio, recentrar, pausar ou qualquer
-  tecla do teclado. A linha do botão acende quando você o aperta.
-- **Saída:** modo *light gun* (absoluto) ou *mouse giroscópio* (relativo, para
-  jogos de PC que não aceitam mouse absoluto), área da tela e monitor.
-- **Sensor:** correção pela gravidade, auto-correção da deriva e tamanho/distância
-  da tela.
-- **Perfis:** um por jogo, criados a partir de modelos prontos: Padrão, MAME,
-  Arcade tiro rápido, Precisão e Mouse giroscópio.
-
-Com a mira ativa, a light gun controla o cursor. Para usar o mouse normal,
-aperte **HOME** no controle (pausa/retoma).
-
-## Uso
+The **Help** tab covers emulator setup (RetroArch, MAME, Dolphin,
+DuckStation/PCSX2) and precision tips. Command-line usage:
 
 ```bash
-lightgun-joypad gui            # aplicativo (janela + bandeja); --tray inicia escondido
-lightgun-joypad calibrate      # calibração pelo terminal
-lightgun-joypad run            # light gun sem painel
-lightgun-joypad run --dry-run  # NÃO mexe no mouse: desenha a mira no terminal
-lightgun-joypad sim            # simulador: estande de tiro em tela cheia
-lightgun-joypad buttons        # mostra o nome de cada botão apertado
-lightgun-joypad devices        # lista os controles detectados
-lightgun-joypad init-config    # cria o arquivo de config para editar
+capybara-lightgun gui            # the app (also: --tray)
+capybara-lightgun run --dry-run  # draw the aim in the terminal; doesn't move the mouse
+capybara-lightgun calibrate      # terminal calibration
+capybara-lightgun buttons        # show button names as you press them
+capybara-lightgun devices        # list detected devices
+capybara-lightgun selftest       # check the system without any device
+capybara-lightgun sim            # pygame target range
 ```
 
-Depois de instalado, o comando é `lightgun-joypad`. No Windows, rode
-`%LOCALAPPDATA%\LightGunJoypad\venv\Scripts\lightgun-joypad`.
+## For developers: a gyroscope test bench
 
-### Simulador (testar sem emulador)
+Ways to use Capybara Lightgun while developing gyro or pointer features:
 
-`lightgun-joypad sim` abre um estande de tiro em tela cheia que usa o mesmo
-processamento do modo real, mas desenha a mira na janela em vez de mexer no
-mouse. Não precisa de `/dev/uinput`.
+- **Feed your app real gyro aiming without writing a driver.** Your
+  application just receives absolute mouse or pointer events (or reads the
+  virtual device on Linux).
+- **Inspect sensor behaviour:** the live preview shows the filtered aim and
+  the raw, unfiltered aim side by side. `run --dry-run` prints the aim in the
+  terminal.
+- **Try your own algorithms:** fusion (`fusion.py`), geometry and calibration
+  (`geometry.py`), filtering (`filters.py`) and the pipeline (`engine.py`) are
+  small, documented and covered by tests that simulate a physical gun in front
+  of a screen.
+- **Add a new device:** write an input source that yields `ImuSample`
+  (gyro °/s, accel g, dt) and `ButtonState`, converted to the internal axis
+  convention. Everything else (calibration, smoothing, outputs, app) works
+  unchanged.
 
-- Alvos aparecem aleatoriamente; o placar mostra acertos e o **erro médio em
-  pixels**. A bolinha cinza é a mira crua (sem filtro), para comparar.
-- **C** calibra na própria tela (centro + 4 cantos) e salva a calibração.
-- **H** esconde a mira: atire às cegas e veja onde o tiro caiu.
-- **Y** (no controle) ou **R** recentra; **T** liga/desliga o rastro; **N** zera o placar.
-- Sem controle conectado, o mouse faz o papel da arma.
-- `--windowed 1280x720` abre em janela; `--display 1` abre no 2º monitor.
+## Project layout and tests
 
-### Calibração (terminal, sem precisar ver cursor)
-
-1. Apoie o controle parado (mede o bias do giroscópio).
-2. Segure como arma, **na posição em que vai jogar**.
-3. Mire no **centro**, aperte o gatilho; depois nos 4 **cantos** da área de
-   imagem do jogo.
-
-O programa mostra o campo de visão medido e o erro residual. A calibração é
-salva em `~/.config/lightgun-joypad/calibration.json` (Windows:
-`%APPDATA%\lightgun-joypad\`).
-
-Sem calibração, a geometria é calculada pelo tamanho da tela e pela distância
-(`screen` na config; o padrão é uma TV de 55" a 2 m).
-
-### Toda vez que começar a jogar
-
-Mire no centro e aperte **recentrar** (Y ou ←). Se a mira escorregar no meio do
-jogo, faça de novo; leva meio segundo.
-
-### Botões padrão
-
-| Botão (Joy-Con R / L)  | Ação                                              |
-|------------------------|---------------------------------------------------|
-| ZR / ZL                | **gatilho** (clique esquerdo)                     |
-| R / L                  | **tiro fora da tela** (recarregar)                |
-| A / →                  | clique direito                                    |
-| B / ↓                  | clique do meio                                    |
-| Y / ←                  | **recentrar** (mirando no centro)                 |
-| X / ↑                  | tecla `1` (start P1 no MAME)                      |
-| + / −                  | tecla `5` (ficha no MAME)                         |
-| SL / SR                | `enter` / `esc`                                   |
-| HOME / Captura         | pausar/retomar a mira (para usar o mouse real)    |
-
-Edite com `init-config`. As ações são `trigger`, `offscreen_shot`,
-`mouse_left`, `mouse_right`, `mouse_middle`, `recenter`, `toggle` e
-`key:<tecla>` (letras, números, `enter`, `esc`, `space`, `tab`, setas, `f1`–`f12`,
-`shift`, `ctrl`, `alt`). Também dá para usar nomes crus do evdev
-(`"BTN_TR2": "trigger"`); veja os nomes com `lightgun-joypad buttons`.
-
-## Ajustes finos (`config.json`)
-
-| Chave                        | Efeito                                                         |
-|------------------------------|----------------------------------------------------------------|
-| `smoothing.min_cutoff`       | menor = mira mais firme parada (mais "pesada")                 |
-| `smoothing.beta`             | maior = menos atraso em movimentos rápidos                     |
-| `shot.lookback_ms` / `freeze_ms` | compensação do tranco do gatilho                          |
-| `fusion.kp`                  | quão rápido a gravidade corrige a inclinação                   |
-| `region` / `monitor`         | limitar a mira a um monitor ou janela (`monitor` só no Windows) |
-| `offscreen_position`         | para onde vai o "tiro fora da tela"                            |
-| `grab`                       | Linux: esconde o controle do emulador como gamepad             |
-
-Exemplo de config completa: [`config.example.json`](config.example.json).
-
-## Emuladores
-
-O sistema vê um **mouse absoluto**, então funciona com qualquer jogo/emulador
-que aceite mouse como light gun:
-
-- **RetroArch**: *Configurações → Entrada → Portas → Tipo de dispositivo:
-  Light Gun* (driver de entrada `udev` no Linux, `raw`/`dinput` no Windows).
-  Associe *Gun Trigger* ao clique esquerdo e *Gun Reload* ao direito, ou use o
-  `offscreen_shot`.
-- **MAME**: `-lightgun -lightgun_device mouse`. Com `-offscreen_reload`, o 2º botão recarrega.
-- **Dolphin/PCSX2/DuckStation**: mapeie o ponteiro para o mouse.
-
-Em tela cheia com vários monitores, use `monitor` (Windows) ou `region`.
-
-## Desenvolvimento
+```
+src/capybara_lightgun/
+  fusion.py, geometry.py, filters.py   sensor fusion, projection/homography, One Euro
+  engine.py                            pipeline: IMU → aim → pointer + buttons
+  calibration.py                       center + 4 corners calibration
+  inputs/                              evdev (Linux), raw HID, SDL, system mouse
+  outputs/                             uinput, SendInput, Quartz, console
+  client.py, gui.py, gui_fields.py     resident app (Qt) and settings
+  i18n.py, locales/                    translations
+  selftest.py, simulator.py            self-test and pygame target range
+installer/                             Linux, Windows and macOS installers
+tests/                                 pytest suite
+```
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
+python -m venv .venv && .venv/bin/pip install -e '.[dev,sim]'
 .venv/bin/pytest
 ```
 
-Os testes simulam uma arma física a 2 m de uma TV de 55" e conferem que ela
-acerta alvos conhecidos: com roll, com jogador fora do eixo, com direção
-inicial desconhecida + recentrar, com bias e ruído no giroscópio, e com a
-compensação do tranco do gatilho.
+## Translations
 
-```
-src/lightgun_joypad/
-  fusion.py        Mahony + estimador de bias do giroscópio
-  geometry.py      projeção do raio + homografia
-  filters.py       One Euro 2D
-  engine.py        pipeline IMU -> mira -> mouse/botões
-  calibration.py   calibração guiada (centro + 4 cantos)
-  client.py        núcleo do cliente residente (thread do controle, perfis, calibração)
-  gui.py           aplicativo Qt: janela de configuração, bandeja, calibração e estande
-  gui_fields.py    lista de ajustes mostrados no aplicativo
-  i18n.py          idiomas (tr(), idioma salvo)
-  locales/         traduções: pt_BR, es, fr, de, zh_CN (+ ajuda em inglês)
-  simulator.py     estande de tiro (pygame)
-  inputs/          linux_evdev (hid-nintendo) e switch_hid (hidapi, protocolo cru)
-  outputs/         linux_uinput, windows_sendinput, console (--dry-run)
-```
+The UI is available in English (default), Português (Brasil), Español,
+Français, Deutsch and 中文（简体）. The **🌐 Language** selector always stays in
+English, so it is easy to switch back. To add a language, copy a file in
+`src/capybara_lightgun/locales/`, translate it, register it in `i18n.py`, and
+run the tests. `tests/test_i18n.py` flags any missing text.
 
-### Limitações
+---
 
-- Sem bússola no controle, o yaw sempre precisa de um ponto de referência
-  (recentrar). O bias automático deixa a deriva bem lenta, mas não zero.
-- Se você **andar** pela sala depois de calibrar, a mira desalinha; com o
-  jogador parado no lugar calibrado, a geometria é exata.
-- O backend `hidapi` lê os dados crus com escala padrão (`gyro_dps_per_lsb`).
-  Erro de escala é absorvido pela calibração, mas, se a mira "correr" mais ou
-  menos que o cano, ajuste esse valor.
+## License (MIT): what it means
+
+This project is licensed under the **MIT License** (see [`LICENSE`](LICENSE)).
+In plain words (the `LICENSE` file is the binding text):
+
+- **You may** use, copy, modify, merge, publish, distribute, sublicense and
+  sell copies of the software, for any purpose, including commercial use.
+- **On one condition:** keep the copyright notice and the license text in
+  all copies or substantial portions of the software.
+- **No warranty:** the software is provided "as is", without warranty of any
+  kind, express or implied, including merchantability, fitness for a
+  particular purpose and non-infringement.
+- **No liability:** the authors and copyright holders are not liable for any
+  claim, damages or other liability arising from the software or its use.
+
+**Why MIT?** The goal is to let anyone, especially developers, study, test,
+reuse and improve these gyroscope techniques with as little friction as
+possible. The author's **non-profit intent** is a statement of purpose. It
+does **not** add restrictions to the license.
+
+## Disclaimer and legal notices
+
+*This section is informational and is not legal advice. Laws vary by country.
+If you have legal questions, consult a qualified professional. Nothing here
+limits or extends the [`LICENSE`](LICENSE); where they differ, the `LICENSE`
+prevails.*
+
+### No warranty, use at your own risk
+To the maximum extent permitted by applicable law, the software is provided
+**"AS IS"**, without warranties of any kind. The authors and contributors are
+**not responsible** for any direct or indirect damage, loss of data, damage to
+hardware or software, injury, lost profits, account bans or any other
+consequence of installing, using, modifying or distributing this software. You
+decide whether and how to use it, and you take responsibility for that use.
+
+### Purpose and intended use
+Capybara Lightgun is a non-commercial, educational and development tool for
+**interoperability**: it lets devices you own work as pointing devices on your
+own computer. It is **not intended** for, and must not be used for, cheating,
+gaining unfair advantages, circumventing restrictions, or harming people,
+systems or businesses.
+
+### No affiliation, trademarks
+This project is **independent**. It is not affiliated with, sponsored by, or
+endorsed by Nintendo, Sony Interactive Entertainment, Microsoft, Valve, 8BitDo,
+Apple, or any other company. *Nintendo Switch, Joy-Con, PlayStation,
+DualSense, DualShock, Xbox, Steam, Steam Deck, macOS, Windows* and other names
+are trademarks of their respective owners. They appear here **only to
+identify compatibility** (nominative use). Listing a device is not a
+recommendation, and no device is preferred: the project targets the
+**gyroscope** as a sensor.
+
+### No proprietary content, no circumvention
+The project contains **no** proprietary code, firmware, encryption keys,
+BIOS, ROMs, games or other copyrighted material from device or game makers.
+It only uses **public operating-system interfaces** (evdev/uinput, HID, SDL,
+Win32, Quartz) and publicly documented or community-documented device
+reports, for interoperability. It does **not** modify device firmware and
+does **not** circumvent copy protection, DRM or any other technological
+protection measure.
+
+### Games, emulators and online services
+Capybara Lightgun doesn't provide or link to games or ROMs. If you use it
+with emulators, **you are responsible** for owning legal copies and complying
+with the applicable licenses and laws. Input emulation may **violate the
+terms of service** of online or competitive games, or trigger anti-cheat
+systems. Don't use it where that is not allowed. The authors are not
+responsible for account suspensions or other penalties.
+
+### Changes made to your system
+The installers are transparent, user-level and reversible. Depending on the
+platform, they may:
+- **Linux:** add a udev rule (`/etc/udev/rules.d/70-capybara-lightgun.rules`)
+  granting the logged-in user access to supported controllers and
+  `/dev/uinput`. Load the `uinput` and `hid-nintendo` modules. Set
+  `ClassicBondedOnly=false` in `/etc/bluetooth/input.conf`, with a backup.
+  **Note:** that setting lets Bluetooth input devices connect without
+  bonding. Controllers such as Joy-Cons need it, but it slightly relaxes a
+  BlueZ security default. Review it if you are in a sensitive environment,
+  and restore the backup to revert.
+- **All platforms:** create an isolated Python environment, a menu/start
+  shortcut and a start-at-login entry. Uninstallers remove them (your
+  settings are kept).
+- **macOS:** ask you to grant Accessibility and Input Monitoring permissions.
+
+Please read the scripts in `installer/` and `scripts/` before running them.
+
+### Privacy
+The app makes **no network connections** and collects **no telemetry**.
+Settings, calibration and logs are stored only on your computer. The
+optional automatic profile switching reads the **title or class of the active
+window** locally, only to match the words you configure. It is never stored
+or sent anywhere.
+
+### Physical safety
+You are moving a device in the air: use the **wrist strap**, keep clear space
+around you and others, hold the device firmly, and take breaks. Rumble is
+optional.
+
+### Third-party software
+Capybara Lightgun depends on third-party packages that have **their own
+licenses**, including PyQt5 (GPL v3 or commercial), Qt, SDL2 and PySDL2
+(zlib and public domain), pygame (LGPL), python-evdev / evdev-binary (BSD) and
+hidapi (BSD/GPL/original). The installers download them from PyPI. The MIT
+License of this project covers only this project's own code. If you
+**redistribute a bundle** that includes these components (for example a
+packaged executable), you must comply with their licenses too, notably the
+GPL terms of PyQt5.
+
+### Contributions
+By contributing, you agree that your contribution is licensed under the same
+MIT License and that you have the right to submit it.
+
+---
+
+Copyright (c) 2026 loboguaraBR. Licensed under the [MIT License](LICENSE).

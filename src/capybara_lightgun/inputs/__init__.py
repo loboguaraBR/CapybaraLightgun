@@ -108,7 +108,7 @@ def list_all() -> list:
             out.append(("evdev", f"indisponível: {exc}"))
     for mod in ("switch_hid", "ps_hid", "sdl_source"):
         try:
-            m = __import__(f"lightgun_joypad.inputs.{mod}", fromlist=["list_devices"])
+            m = __import__(f"capybara_lightgun.inputs.{mod}", fromlist=["list_devices"])
             out += [("sdl" if mod == "sdl_source" else "hidapi", d) for d in m.list_devices()]
         except ImportError as exc:
             out.append(("hidapi", f"indisponível: {exc}"))

@@ -1,6 +1,6 @@
 """Autoteste: confere as peças do sistema sem precisar de controle.
 
-    lightgun-joypad selftest
+    capybara-lightgun selftest
 
 Roda nos testes automáticos (Linux, Windows e macOS) e serve de roteiro para
 quem for testar num computador novo. Não move o cursor nem clica.
@@ -22,7 +22,7 @@ def check(name: str, required: bool = True):
             RESULTS.append((name, "ok", info or ""))
         except Exception as exc:  # noqa: BLE001
             RESULTS.append((name, "FALHOU" if required else "aviso", f"{type(exc).__name__}: {exc}"))
-            if os.environ.get("LGJ_SELFTEST_TRACE"):
+            if os.environ.get("CAPY_SELFTEST_TRACE"):
                 traceback.print_exc()
         return fn
     return deco
@@ -160,7 +160,7 @@ def run() -> int:
         return f"{win.tabs.count()} abas"
 
     width = max(len(n) for n, _, _ in RESULTS)
-    print(f"\nAutoteste do Light Gun Joypad — {plat}, Python {sys.version.split()[0]}\n")
+    print(f"\nAutoteste do Capybara Lightgun — {plat}, Python {sys.version.split()[0]}\n")
     for name, status, info in RESULTS:
         mark = {"ok": "✓", "aviso": "!", "FALHOU": "✗"}[status]
         print(f" {mark} {name.ljust(width)}  {info}")

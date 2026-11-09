@@ -1,14 +1,14 @@
 #!/bin/bash
-# Instalador do Light Gun Joypad para macOS (não precisa de administrador).
-#  - ambiente Python em ~/Library/Application Support/LightGunJoypad
-#  - aplicativo ~/Applications/Light Gun Joypad.app
+# Instalador do Capybara Lightgun para macOS (não precisa de administrador).
+#  - ambiente Python em ~/Library/Application Support/CapybaraLightgun
+#  - aplicativo ~/Applications/Capybara Lightgun.app
 #  - abre sozinho no login (na barra de menus), via LaunchAgent
 set -euo pipefail
 SRC="$(cd "$(dirname "$0")/../.." && pwd)"
-APP_SUPPORT="$HOME/Library/Application Support/LightGunJoypad"
+APP_SUPPORT="$HOME/Library/Application Support/CapybaraLightgun"
 VENV="$APP_SUPPORT/venv"
-APP="$HOME/Applications/Light Gun Joypad.app"
-AGENT="$HOME/Library/LaunchAgents/com.lightgunjoypad.app.plist"
+APP="$HOME/Applications/Capybara Lightgun.app"
+AGENT="$HOME/Library/LaunchAgents/com.capybaralightgun.app.plist"
 say() { printf '\n\033[1;32m==>\033[0m %s\n' "$*"; }
 
 # 1) Python 3.9+
@@ -42,22 +42,22 @@ install -m 0755 "$SRC/installer/macos/uninstall.sh" "$APP_SUPPORT/uninstall.sh"
 say "Criando $APP"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cat > "$APP/Contents/MacOS/LightGunJoypad" <<EOS
+cat > "$APP/Contents/MacOS/CapybaraLightgun" <<EOS
 #!/bin/bash
-exec "$VENV/bin/python" -m lightgun_joypad gui "\$@"
+exec "$VENV/bin/python" -m capybara_lightgun gui "\$@"
 EOS
-chmod +x "$APP/Contents/MacOS/LightGunJoypad"
+chmod +x "$APP/Contents/MacOS/CapybaraLightgun"
 cat > "$APP/Contents/Info.plist" <<EOS
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>CFBundleName</key><string>Light Gun Joypad</string>
-  <key>CFBundleDisplayName</key><string>Light Gun Joypad</string>
-  <key>CFBundleIdentifier</key><string>com.lightgunjoypad.app</string>
-  <key>CFBundleExecutable</key><string>LightGunJoypad</string>
+  <key>CFBundleName</key><string>Capybara Lightgun</string>
+  <key>CFBundleDisplayName</key><string>Capybara Lightgun</string>
+  <key>CFBundleIdentifier</key><string>com.capybaralightgun.app</string>
+  <key>CFBundleExecutable</key><string>CapybaraLightgun</string>
   <key>CFBundleIconFile</key><string>icon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>$("$VENV/bin/python" -c 'import lightgun_joypad as m; print(m.__version__)')</string>
+  <key>CFBundleShortVersionString</key><string>$("$VENV/bin/python" -c 'import capybara_lightgun as m; print(m.__version__)')</string>
   <key>LSMinimumSystemVersion</key><string>10.15</string>
   <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
@@ -69,7 +69,7 @@ QT_QPA_PLATFORM=offscreen "$VENV/bin/python" - "$ICONSET" <<'PYEOF' || true
 import sys
 from PyQt5 import QtWidgets
 app = QtWidgets.QApplication([])
-from lightgun_joypad.gui import GREEN, make_icon
+from capybara_lightgun.gui import GREEN, make_icon
 icon = make_icon(GREEN)
 for s in (16, 32, 128, 256, 512):
     icon.pixmap(s, s).save(f"{sys.argv[1]}/icon_{s}x{s}.png")
@@ -85,7 +85,7 @@ cat > "$AGENT" <<EOS
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>Label</key><string>com.lightgunjoypad.app</string>
+  <key>Label</key><string>com.capybaralightgun.app</string>
   <key>ProgramArguments</key>
   <array><string>/usr/bin/open</string><string>-g</string><string>-a</string><string>$APP</string>
          <string>--args</string><string>--tray</string></array>
@@ -95,13 +95,13 @@ EOS
 launchctl load -w "$AGENT" >/dev/null 2>&1 || true
 
 say "Autoteste"
-"$VENV/bin/python" -m lightgun_joypad selftest || true
+"$VENV/bin/python" -m capybara_lightgun selftest || true
 
 open "$APP"
 cat <<EOS
 
 Instalado!
- • O aplicativo "Light Gun Joypad" está em ~/Applications e abre sozinho no login (ícone da mira na barra de menus).
+ • O aplicativo "Capybara Lightgun" está em ~/Applications e abre sozinho no login (ícone da mira na barra de menus).
  • IMPORTANTE: libere o aplicativo em Ajustes do Sistema → Privacidade e Segurança:
      - Acessibilidade (para mover o cursor e clicar)
      - Monitoramento de Entrada (para ler o controle)

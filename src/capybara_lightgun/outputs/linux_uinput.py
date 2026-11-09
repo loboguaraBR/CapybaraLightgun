@@ -2,7 +2,7 @@
 
 Dois jeitos (output_target):
 - "mouse":    dispositivo absoluto comum — a área de trabalho o usa como mouse.
-- "lightgun": dispositivo "Joypad Light Gun (driver)" que a área de trabalho
+- "lightgun": dispositivo "Capybara Lightgun (driver)" que a área de trabalho
               IGNORA (regra udev LIBINPUT_IGNORE_DEVICE; no X11 também
               `xinput disable`). O cursor e o touchpad ficam livres; emuladores
               que leem o evdev direto (RetroArch com driver udev) usam a arma.
@@ -18,9 +18,9 @@ import time
 from evdev import AbsInfo, UInput, ecodes as e
 
 MAX = 65535
-DRIVER_NAME = "Joypad Light Gun (driver)"
+DRIVER_NAME = "Capybara Lightgun (driver)"
 DRIVER_PRODUCT = 0x4C4A
-MOUSE_NAME = "Joypad Light Gun"
+MOUSE_NAME = "Capybara Lightgun"
 MOUSE_PRODUCT = 0x4C47
 
 
@@ -89,7 +89,7 @@ class UInputOutput:
                 self.keys[k] = keycode(k)
             except ValueError:
                 pass
-        self.kbd = UInput({e.EV_KEY: sorted(set(self.keys.values()))}, name="Joypad Light Gun Keys",
+        self.kbd = UInput({e.EV_KEY: sorted(set(self.keys.values()))}, name="Capybara Lightgun Keys",
                           vendor=0x1209, product=0x4C48, version=1, bustype=e.BUS_USB)
         self.rel = None  # criado só se o modo relativo for usado
         # No modo driver, só envia movimento depois que a área de trabalho
@@ -124,7 +124,7 @@ class UInputOutput:
     def move_rel(self, dx: int, dy: int) -> None:
         if self.rel is None:
             self.rel = UInput({e.EV_KEY: list(_MOUSE.values()), e.EV_REL: [e.REL_X, e.REL_Y]},
-                              name="Joypad Light Gun (relativo)", vendor=0x1209, product=0x4C49,
+                              name="Capybara Lightgun (relative)", vendor=0x1209, product=0x4C49,
                               version=1, bustype=e.BUS_USB)
         if dx:
             self.rel.write(e.EV_REL, e.REL_X, dx)

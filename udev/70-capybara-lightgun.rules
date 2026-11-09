@@ -1,4 +1,4 @@
-# lightgun-joypad: acesso sem root ao controle Switch e ao /dev/uinput
+# capybara-lightgun: acesso sem root ao controle Switch e ao /dev/uinput
 # (TAG uaccess = libera para o usuário logado na sessão local)
 
 # Mouse virtual (uinput)

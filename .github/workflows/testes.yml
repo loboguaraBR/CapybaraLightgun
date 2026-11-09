@@ -30,7 +30,7 @@ jobs:
       - name: Testes
         run: python -m pytest -q
       - name: Autoteste (sistema, SDL, hidapi, Qt, mouse)
-        run: python -m lightgun_joypad selftest
+        run: python -m capybara_lightgun selftest
       - name: Instalador do macOS (sintaxe e autoteste do pacote instalado)
         if: runner.os == 'macOS'
         run: |

@@ -122,7 +122,7 @@ def run_simulator(cfg: dict, calib_path: str | None = None, windowed: str | None
         screen = pygame.display.set_mode((w, h), display=display)
     else:
         screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN, display=display)
-    pygame.display.set_caption("lightgun-joypad — simulador")
+    pygame.display.set_caption("capybara-lightgun — simulador")
     W, H = screen.get_size()
     pygame.mouse.set_visible(False)
     clock = pygame.time.Clock()

@@ -1,11 +1,11 @@
 """Recursos do cliente: perfis, tiro automático, modo relativo, calibração."""
 import copy
 
-from lightgun_joypad.calibration import Calibrator
-from lightgun_joypad.config import DEFAULTS, ConfigStore, merge
-from lightgun_joypad.engine import LightGun
-from lightgun_joypad.inputs import ButtonState
-from lightgun_joypad.fusion import quat_from_euler, quat_rotate
+from capybara_lightgun.calibration import Calibrator
+from capybara_lightgun.config import DEFAULTS, ConfigStore, merge
+from capybara_lightgun.engine import LightGun
+from capybara_lightgun.inputs import ButtonState
+from capybara_lightgun.fusion import quat_from_euler, quat_rotate
 
 from test_aim import make_tracker, simulate, slerp_path, target_euler
 

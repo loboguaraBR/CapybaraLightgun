@@ -233,7 +233,7 @@ class ClientApp:
         Retorna o nome do perfil se trocou.
         """
         text = (window_text or "").lower()
-        if not text or "light gun joypad" in text:
+        if not text or "capybara lightgun" in text:
             return None
         store = self.store
         if not hasattr(self, "manual_profile") or self.manual_profile not in store.profiles:
@@ -273,5 +273,5 @@ def redirect_output_to_log() -> None:
         d = config_dir()
         d.mkdir(parents=True, exist_ok=True)
         f = open(d / "client.log", "a", encoding="utf-8", buffering=1)
-        f.write(f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} lightgun-joypad {__version__} ---\n")
+        f.write(f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} capybara-lightgun {__version__} ---\n")
         sys.stdout = sys.stderr = f

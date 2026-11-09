@@ -4,13 +4,13 @@ import random
 
 import pytest
 
-from lightgun_joypad.config import DEFAULTS
-from lightgun_joypad.engine import LightGun, Tracker
-from lightgun_joypad.filters import OneEuro2D
-from lightgun_joypad.fusion import BiasEstimator, Mahony, quat_conj, quat_from_euler, quat_mul, quat_rotate
-from lightgun_joypad.geometry import Homography, project
-from lightgun_joypad.inputs import ButtonState, ImuSample
-from lightgun_joypad.inputs.switch_hid import parse_buttons, parse_imu
+from capybara_lightgun.config import DEFAULTS
+from capybara_lightgun.engine import LightGun, Tracker
+from capybara_lightgun.filters import OneEuro2D
+from capybara_lightgun.fusion import BiasEstimator, Mahony, quat_conj, quat_from_euler, quat_mul, quat_rotate
+from capybara_lightgun.geometry import Homography, project
+from capybara_lightgun.inputs import ButtonState, ImuSample
+from capybara_lightgun.inputs.switch_hid import parse_buttons, parse_imu
 
 W, H, D = 1.21, 0.68, 2.0  # TV 55" a 2 m
 

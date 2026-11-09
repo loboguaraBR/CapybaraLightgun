@@ -36,7 +36,7 @@ T = {'"Still" threshold (°/s)': '"静止"阈值（°/s）',
           '<h3>使用哪种模式</h3>\n'
           '<ul>\n'
           '<li><b>仅光枪（驱动）</b> — 光标和触控板保持自由。<b>RetroArch</b>：设置 → 驱动 → 输入 = <i>udev</i>；\n'
-          '输入 → 端口 1 → 设备类型 = <i>Light Gun</i>，鼠标索引 = <i>Joypad Light Gun (driver)</i>。\n'
+          '输入 → 端口 1 → 设备类型 = <i>Light Gun</i>，鼠标索引 = <i>Capybara Lightgun (driver)</i>。\n'
           '绑定 <i>Gun Trigger</i>、<i>Gun Reload</i>（aux A = 右键）和 <i>Gun Start/Select</i>。</li>\n'
           '<li><b>系统鼠标</b> — 适用于一切：<b>MAME</b>（<code>-lightgun -lightgun_device mouse</code>，\n'
           '配合 <code>-offscreen_reload</code>）、<b>Dolphin</b>（Wii：指针 = 鼠标）、<b>DuckStation/PCSX2</b>（GunCon = 鼠标）、\n'
@@ -162,24 +162,23 @@ T = {'"Still" threshold (°/s)': '"静止"阈值（°/s）',
                                                                                                   '即可；144 Hz 以上显示器可调高。',
  "If drift isn't corrected with the controller on the table, increase it a little.": '如果手柄放在桌上时漂移没有被校正，请稍微调大。',
  'Ignores movements smaller than this. Helps with small targets. 0 = off.': '忽略小于此值的移动。有助于瞄准小目标。0 = 关闭。',
- 'In System Settings → Privacy & Security, turn on "Light Gun Joypad" under:\n\n• Accessibility — so the gun can move the cursor and click\n• Input Monitoring — to read the controller in the background\n\nThen quit and open the app again.': '在 '
-                                                                                                                                                                                                                                                 '系统设置 '
-                                                                                                                                                                                                                                                 '→ '
-                                                                                                                                                                                                                                                 '隐私与安全性 '
-                                                                                                                                                                                                                                                 '中，为"Light '
-                                                                                                                                                                                                                                                 'Gun '
-                                                                                                                                                                                                                                                 'Joypad"开启：\n'
-                                                                                                                                                                                                                                                 '\n'
-                                                                                                                                                                                                                                                 '• '
-                                                                                                                                                                                                                                                 '辅助功能 '
-                                                                                                                                                                                                                                                 '— '
-                                                                                                                                                                                                                                                 '让光枪移动光标并点击\n'
-                                                                                                                                                                                                                                                 '• '
-                                                                                                                                                                                                                                                 '输入监控 '
-                                                                                                                                                                                                                                                 '— '
-                                                                                                                                                                                                                                                 '在后台读取手柄\n'
-                                                                                                                                                                                                                                                 '\n'
-                                                                                                                                                                                                                                                 '然后退出并重新打开应用。',
+ 'In System Settings → Privacy & Security, turn on "Capybara Lightgun" under:\n\n• Accessibility — so the gun can move the cursor and click\n• Input Monitoring — to read the controller in the background\n\nThen quit and open the app again.': '在 '
+                                                                                                                                                                                                                                                  '系统设置 '
+                                                                                                                                                                                                                                                  '→ '
+                                                                                                                                                                                                                                                  '隐私与安全性 '
+                                                                                                                                                                                                                                                  '中，为"Capybara '
+                                                                                                                                                                                                                                                  'Lightgun"开启：\n'
+                                                                                                                                                                                                                                                  '\n'
+                                                                                                                                                                                                                                                  '• '
+                                                                                                                                                                                                                                                  '辅助功能 '
+                                                                                                                                                                                                                                                  '— '
+                                                                                                                                                                                                                                                  '让光枪移动光标并点击\n'
+                                                                                                                                                                                                                                                  '• '
+                                                                                                                                                                                                                                                  '输入监控 '
+                                                                                                                                                                                                                                                  '— '
+                                                                                                                                                                                                                                                  '在后台读取手柄\n'
+                                                                                                                                                                                                                                                  '\n'
+                                                                                                                                                                                                                                                  '然后退出并重新打开应用。',
  'Input Monitoring': '输入监控',
  'Invalid points — starting over.': '点位无效 — 重新开始。',
  'Jerk strength (g)': '甩动力度（g）',

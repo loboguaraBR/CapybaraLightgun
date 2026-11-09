@@ -1,13 +1,13 @@
 """Fontes novas (PlayStation, mouse) e recursos de arma (recarregar, coice, perfis automáticos)."""
 import struct
 
-from lightgun_joypad.client import ClientApp, effective_config
-from lightgun_joypad.config import DEFAULTS, ConfigStore, merge
-from lightgun_joypad.engine import LightGun
-from lightgun_joypad.fusion import quat_from_euler
-from lightgun_joypad.inputs import ButtonState, ImuSample, PointerSample
-from lightgun_joypad.inputs.linux_evdev_axes import to_lightgun_axes
-from lightgun_joypad.inputs.ps_hid import parse_report
+from capybara_lightgun.client import ClientApp, effective_config
+from capybara_lightgun.config import DEFAULTS, ConfigStore, merge
+from capybara_lightgun.engine import LightGun
+from capybara_lightgun.fusion import quat_from_euler
+from capybara_lightgun.inputs import ButtonState, ImuSample, PointerSample
+from capybara_lightgun.inputs.linux_evdev_axes import to_lightgun_axes
+from capybara_lightgun.inputs.ps_hid import parse_report
 
 from test_aim import make_tracker, simulate, target_euler
 from test_features import Rec
@@ -104,7 +104,7 @@ def test_system_mouse_passthrough_no_double_clicks():
 
 
 def test_sdl_sample_conversion():
-    from lightgun_joypad.inputs.sdl_source import sdl_to_sample
+    from capybara_lightgun.inputs.sdl_source import sdl_to_sample
 
     s = sdl_to_sample((0.0, 1.0, 0.0), (0.0, 9.80665, 0.0), 0.004)  # deitado; girando p/ esquerda
     assert s.accel_g == (0.0, -0.0, 1.0)
@@ -118,4 +118,4 @@ def test_auto_profile_switch(tmp_path):
     assert app.auto_switch('WM_CLASS = "mame" "MAME: Time Crisis"') == "MAME (-offscreen_reload)"
     assert s.active == "MAME (-offscreen_reload)"
     assert app.auto_switch('WM_CLASS = "google-chrome"') == "Default (light gun)"  # volta ao manual
-    assert app.auto_switch("Light Gun Joypad") is None
+    assert app.auto_switch("Capybara Lightgun") is None

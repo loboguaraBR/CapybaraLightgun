@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
-exec .venv/bin/lightgun-joypad "$@"
+exec .venv/bin/capybara-lightgun "$@"

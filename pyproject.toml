@@ -1,12 +1,24 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lightgun-joypad"
+name = "capybara-lightgun"
 version = "0.7.0"
-description = "Usa o giroscópio do Joy-Con / Pro Controller (Nintendo Switch) como light gun absoluta no Linux e no Windows"
+description = "Turns any device with a gyroscope (or the system mouse) into an absolute light gun / pointer — a quick test bench for gyroscope features. Linux, Windows, macOS."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "loboguaraBR"}]
+keywords = ["gyroscope", "imu", "lightgun", "light gun", "pointer", "sensor fusion", "joycon", "dualsense", "emulation"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: MacOS",
+  "Topic :: System :: Hardware :: Hardware Drivers",
+  "Topic :: Games/Entertainment",
+]
 requires-python = ">=3.9"
 dependencies = [
   "evdev-binary>=1.6; sys_platform == 'linux'",
@@ -16,22 +28,25 @@ dependencies = [
   "pysdl2-dll>=2.30",
 ]
 
+[project.urls]
+Homepage = "https://github.com/loboguaraBR/CapybaraLightgun"
+
 [project.optional-dependencies]
 hid = ["hidapi>=0.14"]
 dev = ["pytest>=7"]
 sim = ["pygame>=2.5"]
 
 [project.scripts]
-lightgun-joypad = "lightgun_joypad.cli:main"
+capybara-lightgun = "capybara_lightgun.cli:main"
 
 [project.gui-scripts]
-lightgun-joypad-gui = "lightgun_joypad.gui:run_gui"
+capybara-lightgun-gui = "capybara_lightgun.gui:run_gui"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-lightgun_joypad = ["assets/*"]
+capybara_lightgun = ["assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

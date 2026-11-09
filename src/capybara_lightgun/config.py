@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import shutil
 import sys
 import threading
 from pathlib import Path
@@ -194,14 +195,23 @@ LEGACY_PRESET_NAMES = {
 }
 
 
-def config_dir() -> Path:
+def _config_base() -> Path:
     if sys.platform == "win32":
-        base = os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming")
-    elif sys.platform == "darwin":
-        base = str(Path.home() / "Library" / "Application Support")
-    else:
-        base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
-    return Path(base) / "lightgun-joypad"
+        return Path(os.environ.get("APPDATA") or str(Path.home() / "AppData" / "Roaming"))
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support"
+    return Path(os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config"))
+
+
+def config_dir() -> Path:
+    d = _config_base() / "capybara-lightgun"
+    legacy = _config_base() / "lightgun-joypad"  # nome antigo do projeto
+    if not d.exists() and legacy.is_dir():
+        try:  # leva configuração, calibração e idioma para a pasta nova (uma vez)
+            shutil.copytree(legacy, d, ignore=shutil.ignore_patterns("*.log", "*.tmp"))
+        except OSError:
+            pass
+    return d
 
 
 def default_config_path() -> Path:

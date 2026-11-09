@@ -26,7 +26,7 @@ from .config import ACTIONS, BUTTON_LABELS, BUTTON_NAMES, KEY_NAMES, PRESETS, Co
 from .i18n import LANGUAGES, SELECTOR_LABEL, current as current_language, save_language, saved_language, \
     set_language, tr
 
-APP_ID = "lightgun-joypad-gui"
+APP_ID = "capybara-lightgun-gui"
 
 GREEN = QColor("#4ade80")
 BLUE = QColor("#60a5fa")
@@ -304,7 +304,7 @@ class CalibrationWindow(QtWidgets.QWidget):
     def __init__(self, app: ClientApp):
         super().__init__(None, Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.app = app
-        self.setWindowTitle(tr("Calibration") + " — Light Gun Joypad")
+        self.setWindowTitle(tr("Calibration") + " — Capybara Lightgun")
         self.setCursor(Qt.BlankCursor)
         self.done_at = None
         self.state = {}
@@ -389,7 +389,7 @@ class TestRange(QtWidgets.QWidget):
 
     def __init__(self, app: ClientApp):
         super().__init__(None, Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setWindowTitle(tr("Test range") + " — Light Gun Joypad")
+        self.setWindowTitle(tr("Test range") + " — Capybara Lightgun")
         self.app = app
         self.seen_shots = app.gun.shots
         self.setMouseTracking(True)
@@ -572,7 +572,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cal_win = None
         self.test_win = None
         self._perm_tick = 0
-        self.setWindowTitle("Light Gun Joypad")
+        self.setWindowTitle("Capybara Lightgun")
         self.setWindowIcon(make_icon(GREEN))
         self.resize(1240, 780)
         self._build_ui()
@@ -592,8 +592,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # topo
         top = QtWidgets.QHBoxLayout()
-        title = QtWidgets.QLabel("<span style='font-size:15pt;font-weight:700'>Light Gun "
-                                 "<span style='color:#4ade80'>Joypad</span></span>")
+        title = QtWidgets.QLabel("<span style='font-size:15pt;font-weight:700'>Capybara "
+                                 "<span style='color:#4ade80'>Lightgun</span></span>")
         self.status = QtWidgets.QLabel()
         self.status.setMaximumWidth(460)
         self.rate = QtWidgets.QLabel()
@@ -913,7 +913,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._reload()
 
     def _err(self, exc) -> None:
-        QtWidgets.QMessageBox.warning(self, "Light Gun Joypad", str(exc))
+        QtWidgets.QMessageBox.warning(self, "Capybara Lightgun", str(exc))
 
     def _dup(self, name):
         new, ok = QtWidgets.QInputDialog.getText(self, tr("Duplicate profile"), tr("Name of the copy:"),
@@ -990,7 +990,7 @@ class MainWindow(QtWidgets.QMainWindow):
         macos.request_permissions()
         QtWidgets.QMessageBox.information(
             self, tr("macOS permissions"),
-            tr("In System Settings → Privacy & Security, turn on \"Light Gun Joypad\" under:\n\n"
+            tr("In System Settings → Privacy & Security, turn on \"Capybara Lightgun\" under:\n\n"
                "• Accessibility — so the gun can move the cursor and click\n"
                "• Input Monitoring — to read the controller in the background\n\n"
                "Then quit and open the app again."))
@@ -1025,7 +1025,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if name:
             self._reload()
             if getattr(self, "tray", None) is not None:
-                self.tray.showMessage("Light Gun Joypad", tr("Profile: {name}").format(name=profile_label(name)),
+                self.tray.showMessage("Capybara Lightgun", tr("Profile: {name}").format(name=profile_label(name)),
                                       make_icon(GREEN), 2000)
 
     def _check_yield(self, s: dict) -> None:
@@ -1144,7 +1144,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.hide()
             if not getattr(self, "_told", False):
                 self._told = True
-                self.tray.showMessage("Light Gun Joypad", tr("Still running here in the tray. "
+                self.tray.showMessage("Capybara Lightgun", tr("Still running here in the tray. "
                                       "Click the icon to open; right-click to quit."), make_icon(GREEN), 4000)
         else:
             self.quit_app()
@@ -1161,7 +1161,7 @@ class Tray(QtWidgets.QSystemTrayIcon):
         super().__init__(make_icon(MUTED))
         self.win = win
         self.app = win.app
-        self.setToolTip("Light Gun Joypad")
+        self.setToolTip("Capybara Lightgun")
         self.menu = QtWidgets.QMenu()
         self.setContextMenu(self.menu)
         self.activated.connect(self._activated)
@@ -1217,12 +1217,12 @@ class Tray(QtWidgets.QSystemTrayIcon):
         self._last = key
         col = MUTED if not s["connected"] else (AMBER if s["paused"] or not s["bias_ok"] else GREEN)
         self.setIcon(make_icon(col))
-        tip = "Light Gun Joypad — " + ((tr("paused") if s["paused"] else tr("active")) if s["connected"]
+        tip = "Capybara Lightgun — " + ((tr("paused") if s["paused"] else tr("active")) if s["connected"]
                                        else tr("no controller"))
         self.setToolTip(tip)
         self.a_pause.setText(tr("Resume aim") if s["paused"] else tr("Pause aim"))
         if prev is not None and prev[0] != s["connected"]:
-            self.showMessage("Light Gun Joypad", tr("Controller connected: {name}").format(name=s["device"])
+            self.showMessage("Capybara Lightgun", tr("Controller connected: {name}").format(name=s["device"])
                              if s["connected"] else tr("Controller disconnected"), make_icon(col), 2500)
 
 
@@ -1243,7 +1243,7 @@ def run_gui(config_path=None, calib_path=None, start_hidden: bool = False) -> in
     QtCore.QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     QtCore.QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
     qapp = QtWidgets.QApplication(sys.argv[:1])
-    qapp.setApplicationName("Light Gun Joypad")
+    qapp.setApplicationName("Capybara Lightgun")
     qapp.setApplicationVersion(__version__)
     qapp.setQuitOnLastWindowClosed(False)
     if _already_running():

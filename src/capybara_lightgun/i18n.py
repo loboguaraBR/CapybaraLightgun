@@ -35,7 +35,7 @@ _english: dict = {}
 
 def _load(code: str) -> dict:
     try:
-        return importlib.import_module(f"lightgun_joypad.locales.{code}").T
+        return importlib.import_module(f"capybara_lightgun.locales.{code}").T
     except (ImportError, AttributeError):
         return {}
 

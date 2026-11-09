@@ -24,8 +24,9 @@ if ! grep -qE '^\s*ClassicBondedOnly\s*=\s*false' "$CONF" 2>/dev/null; then
 fi
 echo "BlueZ: $(grep ClassicBondedOnly "$CONF")"
 
-install -m 0644 udev/70-lightgun-joypad.rules /etc/udev/rules.d/
-echo uinput > /etc/modules-load.d/lightgun-joypad.conf
+install -m 0644 udev/70-capybara-lightgun.rules /etc/udev/rules.d/
+rm -f /etc/udev/rules.d/70-lightgun-joypad.rules /etc/modules-load.d/lightgun-joypad.conf  # nome antigo
+echo uinput > /etc/modules-load.d/capybara-lightgun.conf
 modprobe uinput || true
 modprobe hid_nintendo || true
 udevadm control --reload-rules

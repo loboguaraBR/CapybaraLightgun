@@ -5,13 +5,13 @@ import types
 
 import pytest
 
-from lightgun_joypad.config import KEY_NAMES
+from capybara_lightgun.config import KEY_NAMES
 
 
 @pytest.fixture
 def fake_macos(monkeypatch):
     posted = []
-    m = types.ModuleType("lightgun_joypad.macos")
+    m = types.ModuleType("capybara_lightgun.macos")
     m.LEFT_DOWN, m.LEFT_UP, m.RIGHT_DOWN, m.RIGHT_UP, m.MOVED = 1, 2, 3, 4, 5
     m.LEFT_DRAG, m.RIGHT_DRAG, m.OTHER_DOWN, m.OTHER_UP, m.OTHER_DRAG = 6, 7, 25, 26, 27
     m.displays = lambda: [(0.0, 0.0, 1440.0, 900.0), (1440.0, -200.0, 1920.0, 1080.0)]
@@ -19,16 +19,16 @@ def fake_macos(monkeypatch):
     m.cursor = lambda: (100.0, 100.0)
     m.post_mouse = lambda kind, x, y, button=0, dx=0, dy=0: posted.append(("m", kind, round(x), round(y), button))
     m.post_key = lambda code, down: posted.append(("k", code, down))
-    src = open(importlib.util.find_spec("lightgun_joypad").submodule_search_locations[0] + "/macos.py").read()
+    src = open(importlib.util.find_spec("capybara_lightgun").submodule_search_locations[0] + "/macos.py").read()
     keys_src = src[src.index("KEYCODES = {"):src.index("}", src.index("KEYCODES = {")) + 1]
     exec(keys_src, m.__dict__)
-    monkeypatch.setitem(sys.modules, "lightgun_joypad.macos", m)
-    import lightgun_joypad
-    monkeypatch.setattr(lightgun_joypad, "macos", m, raising=False)
-    sys.modules.pop("lightgun_joypad.outputs.mac_quartz", None)
-    mq = importlib.import_module("lightgun_joypad.outputs.mac_quartz")
+    monkeypatch.setitem(sys.modules, "capybara_lightgun.macos", m)
+    import capybara_lightgun
+    monkeypatch.setattr(capybara_lightgun, "macos", m, raising=False)
+    sys.modules.pop("capybara_lightgun.outputs.mac_quartz", None)
+    mq = importlib.import_module("capybara_lightgun.outputs.mac_quartz")
     yield m, mq, posted
-    sys.modules.pop("lightgun_joypad.outputs.mac_quartz", None)
+    sys.modules.pop("capybara_lightgun.outputs.mac_quartz", None)
 
 
 def test_all_keys_have_mac_codes(fake_macos):

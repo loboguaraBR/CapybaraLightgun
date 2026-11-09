@@ -1,11 +1,11 @@
-﻿# Instalador do Light Gun Joypad para Windows (não precisa de administrador).
+﻿# Instalador do Capybara Lightgun para Windows (não precisa de administrador).
 #  - instala o Python (via winget) se não houver
-#  - ambiente próprio em %LOCALAPPDATA%\LightGunJoypad
+#  - ambiente próprio em %LOCALAPPDATA%\CapybaraLightgun
 #  - atalhos: Menu Iniciar, Área de Trabalho e Inicializar (roda junto com o Windows)
 #  - aparece em "Aplicativos instalados" para desinstalar
 $ErrorActionPreference = "Stop"
 $Src  = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$Dest = Join-Path $env:LOCALAPPDATA "LightGunJoypad"
+$Dest = Join-Path $env:LOCALAPPDATA "CapybaraLightgun"
 $Venv = Join-Path $Dest "venv"
 function Say($m) { Write-Host "`n==> $m" -ForegroundColor Green }
 
@@ -39,9 +39,16 @@ if (-not $py) {
 }
 Write-Host "   $py"
 
+# Versão antiga ("Light Gun Joypad"): remove o programa (a configuração é aproveitada)
+$OldUninstall = Join-Path $env:LOCALAPPDATA "LightGunJoypad\uninstall.ps1"
+if (Test-Path $OldUninstall) {
+    Say "Removendo a versão antiga (Light Gun Joypad); seus ajustes serão mantidos"
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $OldUninstall | Out-Null
+}
+
 Say "Parando versão anterior (se houver)"
 Get-CimInstance Win32_Process -Filter "Name='pythonw.exe' OR Name='python.exe'" -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -like "*lightgun_joypad*" } |
+    Where-Object { $_.CommandLine -like "*capybara_lightgun*" } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
 Say "Criando ambiente em $Dest"
@@ -66,17 +73,17 @@ function New-Link($path, $target, $arguments, $desc) {
 $programs = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
 $startup  = Join-Path $programs "Startup"
 $desktop  = [Environment]::GetFolderPath("Desktop")
-New-Link (Join-Path $programs "Light Gun Joypad.lnk") $vpyw "-m lightgun_joypad gui" "Light gun — Joy-Con / Pro Controller"
-New-Link (Join-Path $desktop  "Light Gun Joypad.lnk") $vpyw "-m lightgun_joypad gui" "Light gun — Joy-Con / Pro Controller"
-New-Link (Join-Path $programs "Light Gun Joypad - Simulador.lnk") $vpy "-m lightgun_joypad sim" "Estande de tiro para testar a mira"
-New-Link (Join-Path $startup  "Light Gun Joypad.lnk") $vpyw "-m lightgun_joypad gui --tray" "Light gun na bandeja"
+New-Link (Join-Path $programs "Capybara Lightgun.lnk") $vpyw "-m capybara_lightgun gui" "Light gun — Joy-Con / Pro Controller"
+New-Link (Join-Path $desktop  "Capybara Lightgun.lnk") $vpyw "-m capybara_lightgun gui" "Light gun — Joy-Con / Pro Controller"
+New-Link (Join-Path $programs "Capybara Lightgun - Simulador.lnk") $vpy "-m capybara_lightgun sim" "Estande de tiro para testar a mira"
+New-Link (Join-Path $startup  "Capybara Lightgun.lnk") $vpyw "-m capybara_lightgun gui --tray" "Light gun na bandeja"
 
 Say "Registrando em Aplicativos instalados"
-$key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\LightGunJoypad"
+$key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\CapybaraLightgun"
 New-Item -Path $key -Force | Out-Null
-Set-ItemProperty $key DisplayName "Light Gun Joypad"
+Set-ItemProperty $key DisplayName "Capybara Lightgun"
 Set-ItemProperty $key DisplayVersion "0.7.0"
-Set-ItemProperty $key Publisher "lightgun-joypad"
+Set-ItemProperty $key Publisher "capybara-lightgun"
 Set-ItemProperty $key InstallLocation $Dest
 Set-ItemProperty $key DisplayIcon "$vpyw,0"
 Set-ItemProperty $key NoModify 1
@@ -84,12 +91,12 @@ Set-ItemProperty $key NoRepair 1
 Set-ItemProperty $key UninstallString "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$Dest\uninstall.ps1`""
 
 Say "Iniciando"
-Start-Process -FilePath $vpyw -ArgumentList "-m lightgun_joypad gui" -WorkingDirectory $Dest
+Start-Process -FilePath $vpyw -ArgumentList "-m capybara_lightgun gui" -WorkingDirectory $Dest
 
 Write-Host ""
 Write-Host "Instalado!" -ForegroundColor Green
 Write-Host " - O aplicativo já está aberto e inicia sozinho (na bandeja) com o Windows."
-Write-Host " - Abrir: atalho 'Light Gun Joypad' ou o ícone da mira perto do relógio."
+Write-Host " - Abrir: atalho 'Capybara Lightgun' ou o ícone da mira perto do relógio."
 Write-Host " - Pareie o Joy-Con em Configurações > Bluetooth (segure o botão de sync)."
 Write-Host " - Feche Steam / BetterJoy / DS4Windows: eles disputam o controle."
-Write-Host " - Desinstalar: Configurações > Aplicativos > Light Gun Joypad."
+Write-Host " - Desinstalar: Configurações > Aplicativos > Capybara Lightgun."

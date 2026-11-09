@@ -14,15 +14,15 @@ clique com o botão direito → **Abrir**.
 
 - [ ] A instalação terminou e o **autoteste** no final mostrou `TUDO OK`
       (a linha "permissões" pode aparecer como aviso; isso é esperado agora).
-- [ ] O aplicativo **Light Gun Joypad** abriu e o ícone da mira apareceu na barra de menus.
+- [ ] O aplicativo **Capybara Lightgun** abriu e o ícone da mira apareceu na barra de menus.
 
 ## 2. Permissões
 No aplicativo, clique em **⚠ Liberar permissões do macOS** e ative o
-"Light Gun Joypad" em **Acessibilidade** e em **Monitoramento de Entrada**.
+"Capybara Lightgun" em **Acessibilidade** e em **Monitoramento de Entrada**.
 Encerre o aplicativo (menu da mira → Encerrar) e abra de novo.
 
 - [ ] O aviso amarelo sumiu.
-- [ ] Nas listas de permissões aparece "Light Gun Joypad" (e não "Python" ou "Terminal").
+- [ ] Nas listas de permissões aparece "Capybara Lightgun" (e não "Python" ou "Terminal").
       Se aparecer "Python", anote, porque isso muda como o instalador cria o aplicativo.
 
 ## 3. Sem controle (mouse do sistema)
@@ -49,7 +49,7 @@ Pareie em Ajustes → Bluetooth. Fonte da mira = **Automático**.
 ## Como enviar o resultado
 Copie a saída de:
 
-    ~/Library/Application\ Support/LightGunJoypad/venv/bin/python -m lightgun_joypad selftest
+    ~/Library/Application\ Support/CapybaraLightgun/venv/bin/python -m capybara_lightgun selftest
 
-e o arquivo `~/Library/Application Support/lightgun-joypad/client.log`, e
+e o arquivo `~/Library/Application Support/capybara-lightgun/client.log`, e
 diga quais caixas falharam.

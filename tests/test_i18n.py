@@ -4,8 +4,8 @@ import string
 
 import pytest
 
-from lightgun_joypad import i18n
-from lightgun_joypad.locales import collect_strings
+from capybara_lightgun import i18n
+from capybara_lightgun.locales import collect_strings
 
 LANGS = [c for c in i18n.LANGUAGES if c != "en"]
 
@@ -16,7 +16,7 @@ def fields(s: str) -> set:
 
 @pytest.mark.parametrize("code", LANGS)
 def test_every_string_translated_with_same_placeholders(code):
-    T = importlib.import_module(f"lightgun_joypad.locales.{code}").T
+    T = importlib.import_module(f"capybara_lightgun.locales.{code}").T
     strings = collect_strings()
     missing = sorted(strings - set(T))
     assert not missing, f"{code}: faltam {len(missing)}: {missing[:5]}"
@@ -29,7 +29,7 @@ def test_every_string_translated_with_same_placeholders(code):
 def test_english_is_default_and_help_exists(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     monkeypatch.setenv("APPDATA", str(tmp_path))
-    monkeypatch.setattr(i18n, "config_dir", lambda: tmp_path / "lightgun-joypad")
+    monkeypatch.setattr(i18n, "config_dir", lambda: tmp_path / "capybara-lightgun")
     assert i18n.saved_language() == "en"
     i18n.set_language("en")
     assert i18n.tr("Calibrate") == "Calibrate"
@@ -52,7 +52,7 @@ def test_choice_is_saved_and_unknown_falls_back(tmp_path, monkeypatch):
 def test_legacy_portuguese_profile_names_are_migrated(tmp_path):
     import json
 
-    from lightgun_joypad.config import ConfigStore
+    from capybara_lightgun.config import ConfigStore
 
     p = tmp_path / "c.json"
     p.write_text(json.dumps({"active": "Arcade tiro rápido", "profiles": {

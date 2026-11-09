@@ -1,5 +1,5 @@
 #!/bin/bash
-# Dois cliques no Finder para instalar o Light Gun Joypad.
+# Dois cliques no Finder para instalar o Capybara Lightgun.
 cd "$(dirname "$0")"
 bash ./install.sh
 echo
