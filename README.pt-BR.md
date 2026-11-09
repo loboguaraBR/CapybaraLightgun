@@ -16,6 +16,22 @@ fisicamente. Funciona no **Linux**, no **Windows** e no **macOS**
 > dispositivos citados aqui só indicam o que já foi visto funcionando. Não
 > são preferência nem recomendação.
 
+> 🤖 **Gerado com o Claude.** Este projeto (código, testes, instaladores,
+> documentação e traduções) foi **gerado com o assistente de inteligência
+> artificial Claude, da Anthropic**, sob a direção do autor do projeto, que o
+> testou e publicou. Software gerado por IA pode conter erros: revise antes de
+> confiar nele. A Anthropic não tem relação com este projeto.
+
+> ⚖️ **Uso por sua conta e risco.** O software é fornecido **no estado em que
+> se encontra, sem nenhuma garantia**. **Quem usa, modifica ou distribui o
+> software é o único responsável por esse uso.** O autor não controla e não se
+> responsabiliza pela forma como terceiros o utilizam. Leia o
+> [aviso legal completo](AVISO-LEGAL.md).
+
+**Documentação:** [Guia de instalação (Linux · Windows · macOS)](docs/INSTALACAO.md) ·
+[Aviso legal](AVISO-LEGAL.md) · [Licença](LICENSE) ·
+[Guia completo de uso](docs/GUIA-pt-BR.md)
+
 ---
 
 ## Sumário
@@ -30,7 +46,7 @@ fisicamente. Funciona no **Linux**, no **Windows** e no **macOS**
 - [Estrutura do projeto e testes](#estrutura-do-projeto-e-testes)
 - [Idiomas](#idiomas)
 - [Licença (MIT): o que significa](#licença-mit-o-que-significa)
-- [Isenção de responsabilidade e avisos legais](#isenção-de-responsabilidade-e-avisos-legais)
+- [Isenção de responsabilidade e avisos legais](#isenção-de-responsabilidade-e-avisos-legais) · texto completo: [AVISO-LEGAL.md](AVISO-LEGAL.md)
 
 ---
 
@@ -135,6 +151,11 @@ em hardware real) e macOS (experimental; veja
 Linux, Windows e macOS.
 
 ## Instalação
+
+> 📘 **Passo a passo para cada sistema** (requisitos, pareamento, permissões,
+> configuração de emuladores, solução de problemas, atualização e
+> desinstalação): **[docs/INSTALACAO.md](docs/INSTALACAO.md)**. Abaixo, a
+> versão resumida.
 
 Precisa do Python 3.9 ou mais novo. Cada instalador cria o próprio ambiente
 isolado e não mexe no Python do sistema.
@@ -257,6 +278,12 @@ lucro** é uma declaração de propósito. Ela **não** acrescenta restrições 
 licença.
 
 ## Isenção de responsabilidade e avisos legais
+
+> O aviso completo, que é o que vale, está em **[AVISO-LEGAL.md](AVISO-LEGAL.md)**
+> (inglês: [DISCLAIMER.md](DISCLAIMER.md)). Ele trata, entre outros pontos,
+> do uso de IA (Claude) para gerar o projeto e do fato de que **cada usuário é
+> o único responsável pela forma como usa o software**. A seção abaixo é um
+> resumo.
 
 *Esta seção é informativa e não constitui aconselhamento jurídico. As leis
 variam de país para país. Em caso de dúvida jurídica, consulte um

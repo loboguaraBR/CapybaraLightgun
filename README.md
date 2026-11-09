@@ -14,6 +14,21 @@ pointer**, a light gun that aims where you physically point. It runs on
 > calibrated, physically accurate aim. Device names in this document only say
 > what is known to work. They are not a preference or an endorsement.
 
+> 🤖 **Generated with Claude.** This project (code, tests, installers,
+> documentation and translations) was **generated with the AI assistant
+> Claude, by Anthropic**, under the direction of the project author, who
+> tested and published it. AI-generated software can contain errors: review
+> it before relying on it. Anthropic is not affiliated with this project.
+
+> ⚖️ **Use at your own risk.** The software is provided **as is, without any
+> warranty**. **Whoever uses, modifies or distributes it is solely responsible
+> for that use.** The author does not control and is not responsible for how
+> third parties use it. Read the full [legal notice](DISCLAIMER.md).
+
+**Documentation:** [Installation guide (Linux · Windows · macOS)](docs/INSTALL.md) ·
+[Legal notice](DISCLAIMER.md) · [License](LICENSE) ·
+[Guia completo em português](docs/GUIA-pt-BR.md)
+
 ---
 
 ## Contents
@@ -28,7 +43,7 @@ pointer**, a light gun that aims where you physically point. It runs on
 - [Project layout and tests](#project-layout-and-tests)
 - [Translations](#translations)
 - [License (MIT): what it means](#license-mit-what-it-means)
-- [Disclaimer and legal notices](#disclaimer-and-legal-notices)
+- [Disclaimer and legal notices](#disclaimer-and-legal-notices) · full text: [DISCLAIMER.md](DISCLAIMER.md)
 
 ---
 
@@ -126,6 +141,10 @@ real hardware), macOS (experimental, see [`docs/TESTE-MAC.md`](docs/TESTE-MAC.md
 CI runs the test suite on Linux, Windows and macOS.
 
 ## Installation
+
+> 📘 **Step-by-step guide for each system** (requirements, pairing, permissions,
+> emulator setup, troubleshooting, updating and uninstalling):
+> **[docs/INSTALL.md](docs/INSTALL.md)**. Below is the short version.
 
 Requires Python 3.9+. Each installer creates its own isolated environment and
 doesn't touch your system Python.
@@ -240,6 +259,12 @@ possible. The author's **non-profit intent** is a statement of purpose. It
 does **not** add restrictions to the license.
 
 ## Disclaimer and legal notices
+
+> The complete, authoritative notice is **[DISCLAIMER.md](DISCLAIMER.md)**
+> (Portuguese: [AVISO-LEGAL.md](AVISO-LEGAL.md)). It covers, among other
+> things, the use of AI (Claude) to generate the project and the fact that
+> **each user is solely responsible for how they use the software**. The
+> section below is a summary.
 
 *This section is informational and is not legal advice. Laws vary by country.
 If you have legal questions, consult a qualified professional. Nothing here
