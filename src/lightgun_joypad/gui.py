@@ -23,7 +23,8 @@ from . import __version__
 from .activewin import active_window_text
 from .client import ClientApp, redirect_output_to_log
 from .config import ACTIONS, BUTTON_LABELS, BUTTON_NAMES, KEY_NAMES, PRESETS, ConfigStore
-from .inputs import SOURCES
+from .i18n import LANGUAGES, SELECTOR_LABEL, current as current_language, save_language, saved_language, \
+    set_language, tr
 
 APP_ID = "lightgun-joypad-gui"
 
@@ -112,109 +113,12 @@ def set_path(d, path, value):
 # --------------------------------------------------------------------------
 # Definição dos ajustes
 # --------------------------------------------------------------------------
-F = dict
-FIELDS = {
-    "Controle": [
-        F(p="input_source", t="select", l="Fonte da mira",
-          h="Joy-Con/Pro Controller (o mais preciso), DualSense, DualShock 4, outros com giroscópio "
-            "(Steam Deck/Controller, 8BitDo…) ou o mouse do sistema para quem não tem controle. "
-            "Controles de Xbox comuns não têm giroscópio: use o mouse.",
-          o=list(SOURCES.items())),
-        F(p="rumble.enabled", t="check", l="Coice (vibração no tiro)",
-          h="Vibra o controle a cada tiro, como o recuo de uma arma. Joy-Con, Pro, DualSense e DS4 no Linux."),
-        F(p="rumble.ms", t="range", min=10, max=200, step=5, l="Duração do coice (ms)", h="Mais longo = coice mais \"pesado\"."),
-        F(p="rumble.strength", t="range", min=.1, max=1, step=.05, l="Força do coice", h="Intensidade da vibração."),
-        F(p="reload.offscreen_aim", t="check", l="Recarregar mirando fora da tela",
-          h="Como numa light gun de verdade: aponte para fora da tela e aperte o gatilho para recarregar."),
-        F(p="reload.offscreen_margin", t="range", min=0, max=.2, step=.005, pct=True, l="Margem para \"fora da tela\"",
-          h="Quanto além da borda conta como fora. Aumente se recarregar sem querer perto das bordas."),
-        F(p="reload.shake", t="check", l="Recarregar com um tranco",
-          h="Um tranco forte na arma (para baixo, como armar uma escopeta) dispara um tiro fora da tela."),
-        F(p="reload.shake_g", t="range", min=1.5, max=6, step=.1, l="Força do tranco (g)",
-          h="Menor = recarrega com menos força. Se recarregar sozinho ao mirar rápido, aumente."),
-    ],
-    "Mira": [
-        F(p="aim.sensitivity_x", t="range", min=.3, max=3, step=.05, l="Sensibilidade horizontal",
-          h="1,00 = arma real: a mira segue exatamente o cano. Acima de 1, um movimento menor cobre a tela."),
-        F(p="aim.sensitivity_y", t="range", min=.3, max=3, step=.05, l="Sensibilidade vertical",
-          h="Igual à horizontal, para cima/baixo."),
-        F(p="aim.offset_x", t="range", min=-.1, max=.1, step=.001, pct=True, l="Ajuste fino horizontal",
-          h="Alça de mira: desloca o ponto de impacto se o tiro cai sempre um pouco ao lado."),
-        F(p="aim.offset_y", t="range", min=-.1, max=.1, step=.001, pct=True, l="Ajuste fino vertical",
-          h="Positivo = mais para baixo."),
-        F(p="motion.interp_ms", t="range", min=0, max=50, step=1, l="Suavidade do movimento (ms)",
-          h="O Bluetooth entrega as leituras em rajadas e às vezes trava; isto deixa o cursor andar num ritmo "
-            "uniforme. Maior = mais liso, porém um pouco mais atrasado. 0 = desligado (o cursor salta)."),
-        F(p="motion.output_hz", t="range", min=60, max=1000, step=10, l="Atualização do cursor (Hz)",
-          h="Quantas vezes por segundo o cursor é atualizado. 250 é ótimo; suba se o monitor for de 144 Hz+."),
-        F(p="motion.max_extrap_ms", t="range", min=0, max=100, step=5, l="Previsão nas travadas (ms)",
-          h="Quando o Bluetooth atrasa, continua o movimento por até este tempo em vez de congelar."),
-        F(p="smoothing.enabled", t="check", l="Filtro anti-tremor",
-          h="Desligue só para comparar: a mira fica crua, com o tremor da mão."),
-        F(p="smoothing.min_cutoff", t="range", min=.1, max=5, step=.05, l="Estabilidade parado (Hz)",
-          h="Menor = mira mais firme parada, porém mais \"pesada\" em movimentos lentos."),
-        F(p="smoothing.beta", t="range", min=0, max=30, step=.5, l="Resposta a movimentos rápidos",
-          h="Maior = menos atraso em giros rápidos. Jogos frenéticos: suba. Tiro ao alvo: abaixe."),
-        F(p="aim.jitter_lock", t="range", min=0, max=.01, step=.0005, pct=True, l="Trava de micro-movimento",
-          h="Ignora movimentos menores que isso. Ajuda em alvos pequenos. 0 = desligado."),
-    ],
-    "Tiro": [
-        F(p="shot.lookback_ms", t="range", min=0, max=100, step=5, l="Compensação do tranco (ms)",
-          h="O tiro usa a posição de X ms antes do aperto, para o tranco do dedo não desviar a mira."),
-        F(p="shot.freeze_ms", t="range", min=0, max=250, step=10, l="Congelar mira após o tiro (ms)",
-          h="Segura o cursor parado logo após atirar."),
-        F(p="autofire_hz", t="range", min=2, max=25, step=1, l="Tiro automático (tiros/s)",
-          h="Velocidade da ação \"Tiro automático\" (mapeie na aba Botões)."),
-        F(p="offscreen_position", t="select", l="Tiro fora da tela vai para",
-          h="Onde o cursor vai para \"atirar fora da tela\" (recarregar em vários jogos).",
-          o=[([0.0, 0.0], "Canto superior esquerdo"), ([1.0, 0.0], "Canto superior direito"),
-             ([0.0, 1.0], "Canto inferior esquerdo"), ([1.0, 1.0], "Canto inferior direito"),
-             ([0.5, 1.0], "Meio da borda de baixo")]),
-    ],
-    "Saída": [
-        F(p="output_target", t="select", l="A mira controla",
-          h="Só light gun (driver): a área de trabalho ignora a arma; cursor e touchpad ficam livres e o "
-            "RetroArch (driver de entrada udev) usa a arma. Mouse do sistema: a arma move o cursor "
-            "(funciona com qualquer jogo, inclusive MAME).",
-          o=[("lightgun", "Só light gun (driver) — cursor livre"), ("mouse", "Mouse do sistema")]),
-        F(p="overlay.enabled", t="check", l="Mostrar mira na tela",
-          h="Desenha uma mira sobre tudo, onde a arma aponta. Útil no modo driver em jogos que não mostram mira "
-            "(atalho: botão do topo ou ação \"Mostrar/esconder mira na tela\")."),
-        F(p="overlay.size", t="range", min=16, max=96, step=2, l="Tamanho da mira na tela (px)", h=""),
-        F(p="mouse_yield.enabled", t="check", l="Ceder ao touchpad/mouse",
-          h="Modo mouse: se você mexer no touchpad ou no mouse, a arma solta o cursor por alguns segundos "
-            "(volta ao atirar)."),
-        F(p="mouse_yield.seconds", t="range", min=.5, max=10, step=.5, l="Tempo cedido (s)",
-          h="Quanto tempo a arma espera depois do último movimento do touchpad/mouse."),
-        F(p="mode", t="select", l="Modo da mira",
-          h="Light gun: vai onde o cano aponta (emuladores, jogos de tiro). Mouse giroscópio: move o mouse "
-            "comum, para jogos de PC que não aceitam mouse absoluto.",
-          o=[("absolute", "Light gun (absoluto)"), ("relative", "Mouse giroscópio (relativo)")]),
-        F(p="relative_speed", t="range", min=.1, max=6, step=.1, l="Velocidade no modo mouse",
-          h="Só no modo relativo."),
-        F(p="region", t="region", l="Área da tela",
-          h="Fração da área de trabalho onde a mira atua (x0, y0, x1, y1). Com 2 monitores lado a lado, "
-            "o da esquerda é 0 · 0 · 0,5 · 1."),
-        F(p="monitor", t="monitor", l="Monitor", h="Número do monitor (0, 1…). -1 = usa a área acima.", win=True),
-        F(p="grab", t="check", l="Esconder o controle dos jogos",
-          h="O jogo deixa de ver o Joy-Con como gamepad (evita comandos duplicados). Vale ao reconectar.",
-          linux=True),
-    ],
-    "Sensor": [
-        F(p="fusion.kp", t="range", min=0, max=2, step=.05, l="Correção pela gravidade",
-          h="Quão rápido o acelerômetro corrige a inclinação. Maior = menos deriva vertical, mas sente mais os trancos."),
-        F(p="fusion.accel_tolerance_g", t="range", min=.05, max=.6, step=.01, l="Tolerância a trancos (g)",
-          h="Acima disso de aceleração, o acelerômetro é ignorado."),
-        F(p="auto_bias.enabled", t="check", l="Auto-correção da deriva",
-          h="Mede o erro do giroscópio sozinho sempre que o controle fica apoiado parado."),
-        F(p="auto_bias.still_range_dps", t="range", min=.5, max=5, step=.1, l="Limite de \"parado\" (°/s)",
-          h="Se a deriva não é corrigida com o controle na mesa, aumente um pouco."),
-        F(p="screen.width_m", t="range", min=.3, max=4, step=.01, l="Largura da tela (m)", h="Só usado sem calibração."),
-        F(p="screen.height_m", t="range", min=.2, max=2.5, step=.01, l="Altura da tela (m)", h="Só usado sem calibração."),
-        F(p="screen.distance_m", t="range", min=.3, max=6, step=.05, l="Distância até a tela (m)",
-          h="Só usado sem calibração."),
-    ],
-}
+from .gui_fields import CAL_LABELS, F, FIELDS, TAB_TITLES  # noqa: E402
+
+
+def profile_label(name: str) -> str:
+    """Perfis prontos aparecem traduzidos; os criados pelo usuário, como estão."""
+    return tr(name) if name in PRESETS else name
 
 
 # --------------------------------------------------------------------------
@@ -276,8 +180,8 @@ class Row(QtWidgets.QWidget):
         lay = QtWidgets.QGridLayout(self)
         lay.setContentsMargins(4, 8, 4, 8)
         lay.setHorizontalSpacing(16)
-        title = QtWidgets.QLabel(f"<b>{f['l']}</b>")
-        help_ = QtWidgets.QLabel(f.get("h", ""))
+        title = QtWidgets.QLabel(f"<b>{tr(f['l'])}</b>")
+        help_ = QtWidgets.QLabel(tr(f["h"]) if f.get("h") else "")
         help_.setObjectName("help")
         help_.setWordWrap(True)
         left = QtWidgets.QVBoxLayout()
@@ -301,14 +205,14 @@ class Row(QtWidgets.QWidget):
             lay.addWidget(self.slider, 0, 1)
             lay.addWidget(self.val, 0, 2)
         elif t == "check":
-            self.box = QtWidgets.QCheckBox("ligado")
+            self.box = QtWidgets.QCheckBox(tr("on"))
             self.box.setChecked(bool(value))
             self.box.toggled.connect(lambda v: self.changed.emit(f["p"], bool(v)))
             lay.addWidget(self.box, 0, 1)
         elif t == "select":
             self.combo = QtWidgets.QComboBox()
             for val, txt in f["o"]:
-                self.combo.addItem(txt, val)
+                self.combo.addItem(tr(txt), val)
                 if val == value:
                     self.combo.setCurrentIndex(self.combo.count() - 1)
             self.combo.currentIndexChanged.connect(lambda i: self.changed.emit(f["p"], self.combo.itemData(i)))
@@ -364,7 +268,7 @@ class ActionPicker(QtWidgets.QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
         self.act = QtWidgets.QComboBox()
         for val, txt in ACTIONS.items():
-            self.act.addItem(txt, val)
+            self.act.addItem(tr(txt), val)
         self.key = QtWidgets.QComboBox()
         for k in KEY_NAMES:
             self.key.addItem(k.upper(), k)
@@ -400,7 +304,7 @@ class CalibrationWindow(QtWidgets.QWidget):
     def __init__(self, app: ClientApp):
         super().__init__(None, Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.app = app
-        self.setWindowTitle("Calibração — Light Gun Joypad")
+        self.setWindowTitle(tr("Calibration") + " — Light Gun Joypad")
         self.setCursor(Qt.BlankCursor)
         self.done_at = None
         self.state = {}
@@ -460,19 +364,20 @@ class CalibrationWindow(QtWidgets.QWidget):
             p.setFont(big)
             ty = H * (0.25 if cal["step"] == 0 else 0.4)
             p.drawText(QRectF(W * 0.05, ty - 70, W * 0.9, 90), Qt.AlignHCenter | Qt.AlignBottom | Qt.TextWordWrap,
-                       f"Calibração {cal['step'] + 1}/{cal['total']}: mire no {cal['label']} e aperte o gatilho")
+                       tr("Calibration {step}/{total}: aim at the {label} and pull the trigger").format(
+                           step=cal["step"] + 1, total=cal["total"], label=tr(CAL_LABELS[cal["step"]])))
             p.setFont(small)
             p.setPen(QColor("#cbd5e1"))
             p.drawText(QRectF(W * 0.05, ty + 26, W * 0.9, 60), Qt.AlignHCenter | Qt.AlignTop | Qt.TextWordWrap,
-                       cal["message"] or "segure como vai jogar · mire com calma · ESC cancela")
+                       tr(cal["message"]) if cal["message"] else tr("hold it the way you'll play · aim calmly · ESC cancels"))
         else:
             last = self.state.get("cal_last") or {}
             if last.get("ok"):
                 rms = last["rms"]
-                q = "ótimo" if rms < 0.01 else "bom" if rms < 0.03 else "alto — refaça mirando com mais calma"
+                q = tr("great") if rms < 0.01 else tr("good") if rms < 0.03 else tr("high — redo it aiming more calmly")
                 p.setFont(big)
                 p.setPen(GREEN)
-                p.drawText(QRectF(W * 0.05, H * 0.35, W * 0.9, 120), Qt.AlignCenter | Qt.TextWordWrap, f"✓ Calibrado! erro {rms * 100:.2f}% da tela ({q})")
+                p.drawText(QRectF(W * 0.05, H * 0.35, W * 0.9, 120), Qt.AlignCenter | Qt.TextWordWrap, "✓ " + tr("Calibrated! error {pct}% of the screen ({quality})").format(pct=f"{rms * 100:.2f}", quality=q))
 
 
 class TestRange(QtWidgets.QWidget):
@@ -484,7 +389,7 @@ class TestRange(QtWidgets.QWidget):
 
     def __init__(self, app: ClientApp):
         super().__init__(None, Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setWindowTitle("Estande de teste — Light Gun Joypad")
+        self.setWindowTitle(tr("Test range") + " — Light Gun Joypad")
         self.app = app
         self.seen_shots = app.gun.shots
         self.setMouseTracking(True)
@@ -596,9 +501,10 @@ class TestRange(QtWidgets.QWidget):
         e = self.stats["err"]
         mean = sum(e) / len(e) if e else 0.0
         p.setPen(QColor("#cbd5e1"))
-        txt = (f"tiros {self.stats['shots']} · acertos {self.stats['hits']} · erro médio {mean:.1f} px "
-               f"({mean / max(W, 1) * 100:.1f}% da largura)" + (" · MIRA ESCONDIDA" if self.hide_cross else "")
-               + "      H esconder mira · N zerar · ESC sair")
+        txt = (tr("shots {shots} · hits {hits} · mean error {px} px ({pct}% of width)").format(
+               shots=self.stats["shots"], hits=self.stats["hits"], px=f"{mean:.1f}", pct=f"{mean / max(W, 1) * 100:.1f}")
+               + (" · " + tr("CROSSHAIR HIDDEN") if self.hide_cross else "")
+               + "      " + tr("H hide crosshair · N reset · ESC exit"))
         p.drawText(16, 28, txt)
 
 
@@ -648,58 +554,7 @@ class CrosshairOverlay(QtWidgets.QWidget):
                 p.drawLine(QPointF(c + dx * rad * 0.45, c + dy * rad * 0.45), QPointF(c + dx * (s / 2 - 1), c + dy * (s / 2 - 1)))
 
 
-HELP_HTML = """
-<h3>Primeiros passos</h3>
-<ol>
-<li>Apoie o controle parado ~1 s (o giroscópio fica <b>ok</b>).</li>
-<li><b>Calibrar</b>: mire no centro e nos 4 cantos e aperte o gatilho, segurando como vai jogar.</li>
-<li>Durante o jogo, se a mira escorregar para o lado: aponte para o <b>centro</b> e aperte <b>Y</b> (□ no PlayStation).</li>
-</ol>
-<h3>Qual modo usar</h3>
-<ul>
-<li><b>Só light gun (driver)</b> — cursor e touchpad livres. <b>RetroArch</b>: Configurações → Drivers → Entrada = <i>udev</i>;
-Entrada → Portas → Porta 1 → Tipo de dispositivo = <i>Light Gun</i>, Índice do mouse = <i>Joypad Light Gun (driver)</i>.
-Vincule <i>Gun Trigger</i>, <i>Gun Reload</i> (aux A = clique direito) e <i>Gun Start/Select</i>.</li>
-<li><b>Mouse do sistema</b> — funciona com qualquer coisa: <b>MAME</b> (<code>-lightgun -lightgun_device mouse</code>,
-com <code>-offscreen_reload</code>), <b>Dolphin</b> (Wii: ponteiro = mouse), <b>DuckStation/PCSX2</b> (GunCon = mouse),
-jogos de PC com mira por mouse.</li>
-<li><b>Mouse giroscópio</b> (aba Saída → Modo) — para FPS de PC que não aceitam mouse absoluto.</li>
-</ul>
-<h3>Dicas de precisão</h3>
-<ul>
-<li>Calibre <b>na posição em que vai jogar</b> (sentado/em pé, distância). Mudou de lugar? Recalibre.</li>
-<li>Tremendo parado: diminua <i>Estabilidade parado</i> (ex.: 0,8) ou ligue a <i>Trava de micro-movimento</i>.</li>
-<li>Atrasando em giros rápidos: aumente <i>Resposta a movimentos rápidos</i>.</li>
-<li>Cursor aos trancos: aumente <i>Suavidade do movimento</i> (20–25 ms). Atrasado: diminua (8–10 ms).</li>
-<li>O tiro desvia ao apertar o gatilho: aumente <i>Compensação do tranco</i> (35–50 ms).</li>
-<li>O tiro cai sempre um pouco ao lado: use o <i>Ajuste fino</i> (alça de mira).</li>
-<li>Deriva lenta: apoie o controle na mesa entre as fases — o giroscópio se recalibra sozinho.</li>
-</ul>
-<h3>Recarregar</h3>
-<ul>
-<li>Aponte para <b>fora da tela</b> e atire (como na arma real), ou use <b>R</b>/<b>R1</b>, ou ligue <i>Recarregar com um tranco</i>.</li>
-</ul>
-<h3>Outros controles</h3>
-<ul>
-<li><b>DualSense (PS5) / DualShock 4 (PS4)</b>: pareie por Bluetooth ou USB; aponte a <b>frente do controle</b> (a barra de luz)
-para a tela. R2 = gatilho, R1 = recarregar, □ = recentrar.</li>
-<li><b>Outros com giroscópio</b> (Steam Deck/Controller, 8BitDo e afins): fonte <i>Outro controle com giroscópio</i>.
-Segure com a frente apontada para a tela.</li>
-<li><b>Sem controle com giroscópio</b> (ex.: controle de Xbox): use a fonte <i>Mouse do sistema</i> (ou o perfil pronto).
-O mouse continua sendo o mouse, e o programa acrescenta os recursos de light gun: recarregar (botão direito = tiro fora
-da tela), tiro automático, teclas, mira na tela e perfis. No modo driver (Linux) o mouse também alimenta a light gun virtual.</li>
-</ul>
-<h3>Perfis automáticos</h3>
-<p>Na aba Perfis, escreva palavras do nome da janela do jogo (ex.: <code>retroarch</code>, <code>mame</code>). O perfil
-é ativado sozinho quando o jogo está em primeiro plano.</p>
-<h3>macOS</h3>
-<p>Libere o aplicativo em <b>Ajustes do Sistema → Privacidade e Segurança</b>: <b>Acessibilidade</b> (mover o cursor e
-clicar) e <b>Monitoramento de Entrada</b> (ler o controle). O botão amarelo na coluna "Ao vivo" abre essas telas. No Mac só
-existe o modo <i>Mouse do sistema</i>.</p>
-<h3>Bluetooth</h3>
-<p>O Bluetooth do notebook divide o rádio com o Wi-Fi: se a mira travar às vezes, prefira Wi-Fi 5 GHz, aproxime o controle
-ou use um adaptador Bluetooth USB.</p>
-"""
+
 
 
 # --------------------------------------------------------------------------
@@ -710,17 +565,28 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.app = app
         self.tray_ok = tray_ok
+        self.tray = None
         self.quitting = False
         self.work = copy.deepcopy(app.store.effective())
         self.button_rows: dict = {}
         self.cal_win = None
         self.test_win = None
+        self._perm_tick = 0
         self.setWindowTitle("Light Gun Joypad")
         self.setWindowIcon(make_icon(GREEN))
-        self.resize(1180, 760)
+        self.resize(1240, 780)
+        self._build_ui()
+        self.save_timer = QtCore.QTimer(self, singleShot=True, interval=250, timeout=self._save)
+        self.live_timer = QtCore.QTimer(self, interval=16, timeout=self._live)
+        self.live_timer.start()
+        self.auto_timer = QtCore.QTimer(self, interval=1500, timeout=self._auto_profile)
+        self.auto_timer.start()
+        self.overlay = CrosshairOverlay(self.app)
 
+    # ---- montagem da tela (refeita ao trocar de idioma) ----------------------
+    def _build_ui(self) -> None:
+        cur_tab = self.tabs.currentIndex() if getattr(self, "tabs", None) is not None else 0
         central = QtWidgets.QWidget()
-        self.setCentralWidget(central)
         root = QtWidgets.QVBoxLayout(central)
         root.setContentsMargins(14, 10, 14, 14)
 
@@ -729,55 +595,72 @@ class MainWindow(QtWidgets.QMainWindow):
         title = QtWidgets.QLabel("<span style='font-size:15pt;font-weight:700'>Light Gun "
                                  "<span style='color:#4ade80'>Joypad</span></span>")
         self.status = QtWidgets.QLabel()
+        self.status.setMaximumWidth(460)
         self.rate = QtWidgets.QLabel()
         self.rate.setObjectName("help")
-        self.profile_combo = QtWidgets.QComboBox()
-        self.profile_combo.setMinimumWidth(220)
-        self.profile_combo.activated.connect(lambda i: self._select_profile(self.profile_combo.itemText(i)))
         self.saved = QtWidgets.QLabel("")
         self.saved.setStyleSheet("color:#4ade80")
         top.addWidget(title)
-        top.addSpacing(18)
+        top.addSpacing(14)
         top.addWidget(self.status)
-        top.addSpacing(10)
+        top.addSpacing(8)
         top.addWidget(self.rate)
         top.addStretch(1)
-        self.t_driver = QtWidgets.QPushButton("🎯  Só light gun (driver)")
-        self.t_mouse = QtWidgets.QPushButton("🖱  Mouse do sistema")
-        self.t_driver.setToolTip("A área de trabalho ignora a arma: cursor e touchpad livres. "
-                                 "Use no RetroArch (driver de entrada udev).")
-        self.t_mouse.setToolTip("A arma move o cursor do sistema. Funciona com qualquer jogo. "
-                                "Mexer no touchpad faz a arma ceder o cursor por alguns segundos.")
-        grp = QtWidgets.QButtonGroup(self)
+        top.addSpacing(10)
+        top.addWidget(self.saved)
+        top.addWidget(QtWidgets.QLabel(tr("Profile:")))
+        self.profile_combo = QtWidgets.QComboBox()
+        self.profile_combo.setMinimumWidth(200)
+        self.profile_combo.activated.connect(lambda i: self._select_profile(self.profile_combo.itemData(i)))
+        top.addWidget(self.profile_combo)
+        # Seletor de idioma: rótulo SEMPRE em inglês e cada idioma no próprio nome.
+        top.addSpacing(10)
+        lang_label = QtWidgets.QLabel(SELECTOR_LABEL)
+        lang_label.setToolTip("Language")
+        top.addWidget(lang_label)
+        self.lang_combo = QtWidgets.QComboBox()
+        for code, native in LANGUAGES.items():
+            self.lang_combo.addItem(native, code)
+        self.lang_combo.setCurrentIndex(self.lang_combo.findData(current_language()))
+        self.lang_combo.setToolTip("Language")
+        self.lang_combo.activated.connect(lambda i: self.change_language(self.lang_combo.itemData(i)))
+        top.addWidget(self.lang_combo)
+        root.addLayout(top)
+        # segunda linha: modos
+        modes = QtWidgets.QHBoxLayout()
+        self.t_driver = QtWidgets.QPushButton("🎯  " + tr("Light gun only (driver)"))
+        self.t_mouse = QtWidgets.QPushButton("🖱  " + tr("System mouse"))
+        self.t_driver.setToolTip(tr("The desktop ignores the gun: cursor and touchpad stay free. "
+                                    "Use it with RetroArch (udev input driver)."))
+        self.t_mouse.setToolTip(tr("The gun moves the system cursor. Works with any game. "
+                                   "Moving the touchpad makes the gun yield the cursor for a few seconds."))
+        grp = QtWidgets.QButtonGroup(central)
         for b, val in ((self.t_driver, "lightgun"), (self.t_mouse, "mouse")):
             b.setCheckable(True)
             b.setObjectName("seg")
-            b.setMinimumWidth(b.fontMetrics().horizontalAdvance(b.text()) + 60)
+            b.setMinimumWidth(b.fontMetrics().horizontalAdvance(b.text()) + 40)
             grp.addButton(b)
             b.clicked.connect(lambda _=False, v=val: self._set_target(v))
-            top.addWidget(b)
-        self.t_cross = QtWidgets.QPushButton("⌖  Mira na tela")
+            modes.addWidget(b)
+        self.t_cross = QtWidgets.QPushButton("⌖  " + tr("Crosshair"))
         self.t_cross.setCheckable(True)
         self.t_cross.setObjectName("seg")
-        self.t_cross.setToolTip("Desenha a mira por cima de tudo, onde a arma aponta.")
+        self.t_cross.setToolTip(tr("Draws the crosshair on top of everything, where the gun points."))
         self.t_cross.clicked.connect(self._toggle_overlay)
-        top.addSpacing(8)
-        top.addWidget(self.t_cross)
+        modes.addSpacing(6)
+        modes.addWidget(self.t_cross)
         if not sys.platform.startswith("linux"):
             self.t_driver.setEnabled(False)
-            self.t_driver.setToolTip("Só no Linux (no Windows precisaria de driver de kernel).")
-        top.addSpacing(14)
-        top.addWidget(self.saved)
-        top.addWidget(QtWidgets.QLabel("Perfil:"))
-        top.addWidget(self.profile_combo)
-        root.addLayout(top)
+            self.t_driver.setToolTip(tr("Linux only (Windows and macOS would need a system driver)."))
+        modes.addStretch(1)
+        root.addLayout(modes)
 
         body = QtWidgets.QHBoxLayout()
         root.addLayout(body, 1)
 
         # coluna ao vivo
-        live = QtWidgets.QGroupBox("Ao vivo")
-        live.setFixedWidth(420)
+        live = QtWidgets.QGroupBox(tr("Live"))
+        live.setFixedWidth(430)
         lv = QtWidgets.QVBoxLayout(live)
         self.preview = LivePreview()
         lv.addWidget(self.preview)
@@ -789,23 +672,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.i_dev, self.i_bias, self.i_cal, self.i_out, self.i_mode = (QtWidgets.QLabel() for _ in range(5))
         for lbl in (self.i_dev, self.i_bias, self.i_cal, self.i_out, self.i_mode):
             lbl.setWordWrap(True)
-        for name, w in (("Controle", self.i_dev), ("Giroscópio", self.i_bias), ("Calibração", self.i_cal),
-                        ("Saída", self.i_out), ("Modo", self.i_mode)):
+        for name, w in ((tr("Controller"), self.i_dev), (tr("Gyroscope"), self.i_bias), (tr("Calibration"), self.i_cal),
+                        (tr("Output"), self.i_out), (tr("Mode"), self.i_mode)):
             k = QtWidgets.QLabel(name)
             k.setObjectName("help")
             form.addRow(k, w)
         lv.addLayout(form)
-        grid = QtWidgets.QGridLayout()
-        self.b_cal = QtWidgets.QPushButton("🎯  Calibrar")
-        self.b_cal.setObjectName("primary")
-        self.b_test = QtWidgets.QPushButton("🔫  Estande de teste")
-        self.b_rec = QtWidgets.QPushButton("⊕  Recentrar")
-        self.b_pause = QtWidgets.QPushButton("⏸  Pausar mira")
-        self.b_recon = QtWidgets.QPushButton("↻  Reconectar")
-        self.b_bias = QtWidgets.QPushButton("⟲  Medir giroscópio")
-        self.b_calreset = QtWidgets.QPushButton("Apagar calibração")
-        self.b_quit = QtWidgets.QPushButton("⏻  Encerrar")
-        self.b_perm = QtWidgets.QPushButton("⚠  Liberar permissões do macOS")
+        self.b_perm = QtWidgets.QPushButton("⚠  " + tr("Grant macOS permissions"))
         self.b_perm.setObjectName("primary")
         self.b_perm.setVisible(False)
         lv.addWidget(self.b_perm)
@@ -813,14 +686,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.perm_label.setWordWrap(True)
         self.perm_label.setVisible(False)
         lv.addWidget(self.perm_label)
+        grid = QtWidgets.QGridLayout()
+        self.b_cal = QtWidgets.QPushButton("🎯  " + tr("Calibrate"))
+        self.b_cal.setObjectName("primary")
+        self.b_test = QtWidgets.QPushButton("🔫  " + tr("Test range"))
+        self.b_rec = QtWidgets.QPushButton("⊕  " + tr("Recenter"))
+        self.b_pause = QtWidgets.QPushButton("⏸  " + tr("Pause aim"))
+        self.b_recon = QtWidgets.QPushButton("↻  " + tr("Reconnect"))
+        self.b_bias = QtWidgets.QPushButton("⟲  " + tr("Measure gyroscope"))
+        self.b_calreset = QtWidgets.QPushButton(tr("Delete calibration"))
+        self.b_quit = QtWidgets.QPushButton("⏻  " + tr("Quit"))
         btns = [self.b_cal, self.b_test, self.b_rec, self.b_pause, self.b_recon, self.b_bias, self.b_calreset, self.b_quit]
         for i, b in enumerate(btns):
             grid.addWidget(b, i // 2, i % 2)
         lv.addLayout(grid)
-        tip = QtWidgets.QLabel("<b>Só light gun (driver)</b>: o cursor e o touchpad ficam livres; o RetroArch "
-                               "(driver de entrada <i>udev</i>) usa a arma. <b>Mouse do sistema</b>: a arma move o "
-                               "cursor; mexer no touchpad faz ela ceder por alguns segundos. <b>HOME</b> no controle "
-                               "pausa a mira. Recentrar: aponte para o <b>centro</b> da tela e aperte <b>Y</b>.")
+        tip = QtWidgets.QLabel(tr("<b>Light gun only (driver)</b>: the cursor and touchpad stay free; RetroArch "
+                                  "(<i>udev</i> input driver) uses the gun. <b>System mouse</b>: the gun moves the "
+                                  "cursor; moving the touchpad makes it yield for a few seconds. <b>HOME</b> on the "
+                                  "controller pauses the aim. Recenter: point at the <b>center</b> of the screen and "
+                                  "press <b>Y</b>."))
         tip.setObjectName("help")
         tip.setWordWrap(True)
         lv.addWidget(tip)
@@ -829,7 +713,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.tabs = QtWidgets.QTabWidget()
         body.addWidget(self.tabs, 1)
-        self._build_tabs()
 
         self.b_cal.clicked.connect(self.open_calibration)
         self.b_test.clicked.connect(self.open_test)
@@ -840,15 +723,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.b_calreset.clicked.connect(self._cal_reset)
         self.b_quit.clicked.connect(self.quit_app)
         self.b_perm.clicked.connect(self._request_perms)
+
+        self.setCentralWidget(central)
+        self._build_tabs()
+        self.tabs.setCurrentIndex(cur_tab)
+        self._fill_profiles()
         self._perm_tick = 0
 
-        self.save_timer = QtCore.QTimer(self, singleShot=True, interval=250, timeout=self._save)
-        self.live_timer = QtCore.QTimer(self, interval=16, timeout=self._live)
-        self.live_timer.start()
-        self.auto_timer = QtCore.QTimer(self, interval=1500, timeout=self._auto_profile)
-        self.auto_timer.start()
-        self.overlay = CrosshairOverlay(self.app)
-        self._fill_profiles()
+    def change_language(self, code: str) -> None:
+        if code == current_language():
+            return
+        self._flush()
+        set_language(code)
+        save_language(code)
+        self._build_ui()
+        if self.tray is not None:
+            self.tray.retranslate()
 
     # ---- abas -------------------------------------------------------------
     def _scroll(self, inner: QtWidgets.QWidget) -> QtWidgets.QScrollArea:
@@ -856,6 +746,12 @@ class MainWindow(QtWidgets.QMainWindow):
         sa.setWidgetResizable(True)
         sa.setWidget(inner)
         return sa
+
+    def _hint(self, text: str) -> QtWidgets.QLabel:
+        h = QtWidgets.QLabel(text)
+        h.setObjectName("help")
+        h.setWordWrap(True)
+        return h
 
     def _build_tabs(self) -> None:
         cur = self.tabs.currentIndex()
@@ -865,14 +761,11 @@ class MainWindow(QtWidgets.QMainWindow):
         for tab, fields in FIELDS.items():
             w = QtWidgets.QWidget()
             v = QtWidgets.QVBoxLayout(w)
-            if tab == "Mira":
-                hint = QtWidgets.QLabel("Dica: deixe as sensibilidades em 1,00 para a mira ser fiel ao cano, como "
-                                        "uma light gun de verdade. Mude só se o jogo pedir.")
-                hint.setObjectName("help")
-                hint.setWordWrap(True)
-                v.addWidget(hint)
+            if tab == "Aim":
+                v.addWidget(self._hint(tr("Tip: keep the sensitivities at 1.00 so the aim is faithful to the barrel, "
+                                          "like a real light gun. Change them only if the game requires it.")))
             for f in fields:
-                if f.get("win") and plat != "win32":
+                if f.get("nolinux") and plat.startswith("linux"):
                     continue
                 if f.get("linux") and not plat.startswith("linux"):
                     continue
@@ -883,29 +776,23 @@ class MainWindow(QtWidgets.QMainWindow):
                 line.setFrameShape(QtWidgets.QFrame.HLine)
                 line.setStyleSheet("color:#2a3142")
                 v.addWidget(line)
-            if tab == "Saída":
-                n = QtWidgets.QLabel("<b>Emuladores:</b> RetroArch → Entrada → Tipo de dispositivo <i>Light Gun</i>; "
-                                     "MAME → <code>-lightgun -lightgun_device mouse</code>. Jogos de PC sem suporte a "
-                                     "mouse absoluto → modo <i>Mouse giroscópio</i>.")
-                n.setWordWrap(True)
-                n.setObjectName("help")
-                v.addWidget(n)
+            if tab == "Output":
+                v.addWidget(self._hint(tr("<b>Emulators:</b> RetroArch → Input → Device type <i>Light Gun</i>; "
+                                          "MAME → <code>-lightgun -lightgun_device mouse</code>. PC games without "
+                                          "absolute mouse support → <i>Gyro mouse</i> mode.")))
             v.addStretch(1)
-            self.tabs.addTab(self._scroll(w), tab)
-        self.tabs.insertTab(2, self._scroll(self._buttons_tab()), "Botões")
-        self.tabs.addTab(self._scroll(self._profiles_tab()), "Perfis")
-        self.tabs.addTab(self._scroll(self._help_tab()), "Ajuda")
+            self.tabs.addTab(self._scroll(w), tr(tab))
+        self.tabs.insertTab(2, self._scroll(self._buttons_tab()), tr("Buttons"))
+        self.tabs.addTab(self._scroll(self._profiles_tab()), tr("Profiles"))
+        self.tabs.addTab(self._scroll(self._help_tab()), tr("Help"))
         if cur >= 0:
             self.tabs.setCurrentIndex(cur)
 
     def _buttons_tab(self) -> QtWidgets.QWidget:
         w = QtWidgets.QWidget()
         v = QtWidgets.QVBoxLayout(w)
-        hint = QtWidgets.QLabel("Aperte um botão no controle: o nome dele acende. Nomes: Switch · PlayStation. "
-                                "Os botões do mouse valem quando a fonte da mira é o mouse comum.")
-        hint.setObjectName("help")
-        hint.setWordWrap(True)
-        v.addWidget(hint)
+        v.addWidget(self._hint(tr("Press a button on the controller: its name lights up. Names: Switch · PlayStation. "
+                                  "Mouse buttons apply when the aim source is the system mouse.")))
         self.btn_grid = QtWidgets.QGridLayout()
         self.btn_grid.setColumnStretch(1, 1)
         v.addLayout(self.btn_grid)
@@ -913,16 +800,13 @@ class MainWindow(QtWidgets.QMainWindow):
         for n in names:
             self._add_button_row(n)
         v.addStretch(1)
-        n = QtWidgets.QLabel("Um botão fora da lista (nome cru do Linux, ex.: BTN_TR2) aparece aqui sozinho quando "
-                             "você o aperta.")
-        n.setObjectName("help")
-        n.setWordWrap(True)
-        v.addWidget(n)
+        v.addWidget(self._hint(tr("A button outside the list (raw Linux name, e.g. BTN_TR2) shows up here by itself "
+                                  "when you press it.")))
         return w
 
     def _add_button_row(self, name: str) -> None:
         r = self.btn_grid.rowCount()
-        lab = QtWidgets.QLabel(BUTTON_LABELS.get(name, name))
+        lab = QtWidgets.QLabel(tr(BUTTON_LABELS.get(name, name)))
         lab.setObjectName("bname")
         lab.setAlignment(Qt.AlignCenter)
         lab.setMinimumWidth(150)
@@ -944,22 +828,20 @@ class MainWindow(QtWidgets.QMainWindow):
     def _profiles_tab(self) -> QtWidgets.QWidget:
         w = QtWidgets.QWidget()
         v = QtWidgets.QVBoxLayout(w)
-        hint = QtWidgets.QLabel("Um perfil por jogo ou emulador. O perfil ativo vale na hora; também dá para trocar "
-                                "pelo seletor no topo ou pelo ícone da bandeja.")
-        hint.setObjectName("help")
-        hint.setWordWrap(True)
-        v.addWidget(hint)
+        v.addWidget(self._hint(tr("One profile per game or emulator. The active profile applies immediately; you can "
+                                  "also switch with the selector at the top or the tray icon.")))
         store = self.app.store
         for name in list(store.profiles):
             row = QtWidgets.QHBoxLayout()
             act = name == store.active
-            lab = QtWidgets.QLabel(f"<b>{name}</b>" + ("  <span style='color:#4ade80'>(ativo)</span>" if act else ""))
+            lab = QtWidgets.QLabel(f"<b>{profile_label(name)}</b>"
+                                   + (f"  <span style='color:#4ade80'>({tr('active')})</span>" if act else ""))
             row.addWidget(lab, 1)
             if not act:
-                b = QtWidgets.QPushButton("Usar")
+                b = QtWidgets.QPushButton(tr("Use"))
                 b.clicked.connect(lambda _=False, n=name: self._select_profile(n))
                 row.addWidget(b)
-            for txt, fn in (("Duplicar", self._dup), ("Renomear", self._ren), ("Apagar", self._del)):
+            for txt, fn in ((tr("Duplicate"), self._dup), (tr("Rename"), self._ren), (tr("Delete"), self._del)):
                 b = QtWidgets.QPushButton(txt)
                 b.clicked.connect(lambda _=False, n=name, f=fn: f(n))
                 row.addWidget(b)
@@ -968,28 +850,31 @@ class MainWindow(QtWidgets.QMainWindow):
             fr.setStyleSheet("QFrame{border:1px solid %s;border-radius:8px}" % ("#4ade80" if act else "#2a3142")
                              + " QLabel{border:none}")
             v.addWidget(fr)
-        am = Row(F(p="auto_match", t="text", l=f"Ativar \"{store.active}\" automaticamente",
-                   h="Quando a janela ativa tiver uma destas palavras (separe por vírgula), este perfil é ativado; "
-                     "ao sair do jogo, volta ao perfil escolhido à mão. Ex.: retroarch, mame",
+        am = Row(F(p="auto_match", t="text",
+                   l=tr("Activate \"{name}\" automatically").format(name=profile_label(store.active)),
+                   h=tr("When the active window contains one of these words (comma-separated), this profile is "
+                        "activated; when you leave the game, it goes back to the profile you chose by hand. "
+                        "E.g.: retroarch, mame"),
                    ph="retroarch, mame, duckstation"), self.work.get("auto_match", ""))
         am.changed.connect(self._changed)
         v.addWidget(am)
         v.addSpacing(16)
-        v.addWidget(QtWidgets.QLabel("<b>Novo perfil</b>"))
+        v.addWidget(QtWidgets.QLabel("<b>" + tr("New profile") + "</b>"))
         row = QtWidgets.QHBoxLayout()
         self.new_name = QtWidgets.QLineEdit()
-        self.new_name.setPlaceholderText("Nome do jogo")
+        self.new_name.setPlaceholderText(tr("Game name"))
         self.new_base = QtWidgets.QComboBox()
-        self.new_base.addItems(list(PRESETS))
-        b = QtWidgets.QPushButton("Criar")
+        for pname in PRESETS:
+            self.new_base.addItem(tr(pname), pname)
+        b = QtWidgets.QPushButton(tr("Create"))
         b.setObjectName("primary")
         b.clicked.connect(self._create)
         row.addWidget(self.new_name, 2)
-        row.addWidget(QtWidgets.QLabel("a partir de"))
+        row.addWidget(QtWidgets.QLabel(tr("based on")))
         row.addWidget(self.new_base, 2)
         row.addWidget(b)
         v.addLayout(row)
-        p = QtWidgets.QLabel(f"Arquivo: {store.path}")
+        p = QtWidgets.QLabel(tr("File: {path}").format(path=store.path))
         p.setObjectName("help")
         p.setTextInteractionFlags(Qt.TextSelectableByMouse)
         v.addWidget(p)
@@ -997,7 +882,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return w
 
     def _help_tab(self) -> QtWidgets.QWidget:
-        w = QtWidgets.QLabel(HELP_HTML)
+        w = QtWidgets.QLabel(tr("@help"))
         w.setWordWrap(True)
         w.setTextFormat(Qt.RichText)
         w.setAlignment(Qt.AlignTop | Qt.AlignLeft)
@@ -1009,8 +894,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _fill_profiles(self) -> None:
         self.profile_combo.blockSignals(True)
         self.profile_combo.clear()
-        self.profile_combo.addItems(list(self.app.store.profiles))
-        self.profile_combo.setCurrentText(self.app.store.active)
+        for name in self.app.store.profiles:
+            self.profile_combo.addItem(profile_label(name), name)
+        self.profile_combo.setCurrentIndex(self.profile_combo.findData(self.app.store.active))
         self.profile_combo.blockSignals(False)
         tray = getattr(self, "tray", None)
         if tray is not None:
@@ -1030,7 +916,8 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.warning(self, "Light Gun Joypad", str(exc))
 
     def _dup(self, name):
-        new, ok = QtWidgets.QInputDialog.getText(self, "Duplicar perfil", "Nome da cópia:", text=f"{name} (cópia)")
+        new, ok = QtWidgets.QInputDialog.getText(self, tr("Duplicate profile"), tr("Name of the copy:"),
+                                                 text=tr("{name} (copy)").format(name=profile_label(name)))
         if ok and new.strip():
             try:
                 self.app.store.create(new.strip(), name)
@@ -1040,7 +927,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self._err(exc)
 
     def _ren(self, name):
-        new, ok = QtWidgets.QInputDialog.getText(self, "Renomear perfil", "Novo nome:", text=name)
+        new, ok = QtWidgets.QInputDialog.getText(self, tr("Rename profile"), tr("New name:"), text=name)
         if ok and new.strip() and new.strip() != name:
             try:
                 self.app.store.rename(name, new.strip())
@@ -1050,7 +937,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 self._err(exc)
 
     def _del(self, name):
-        if QtWidgets.QMessageBox.question(self, "Apagar perfil", f"Apagar o perfil \"{name}\"?") != QtWidgets.QMessageBox.Yes:
+        if QtWidgets.QMessageBox.question(self, tr("Delete profile"),
+                                          tr("Delete the profile \"{name}\"?").format(name=profile_label(name))) != QtWidgets.QMessageBox.Yes:
             return
         try:
             self.app.store.delete(name)
@@ -1066,7 +954,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.new_name.setFocus()
             return
         try:
-            self.app.store.create(name, self.new_base.currentText())
+            self.app.store.create(name, self.new_base.currentData())
             self.app.select_profile(name)
             self._reload()
         except ValueError as exc:
@@ -1084,7 +972,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _save(self) -> None:
         self.app.save_profile(self.app.store.active, copy.deepcopy(self.work))
-        self.saved.setText("✓ salvo")
+        self.saved.setText("✓ " + tr("saved"))
         QtCore.QTimer.singleShot(1200, lambda: self.saved.setText(""))
 
     # ---- ações -------------------------------------------------------------
@@ -1101,11 +989,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         macos.request_permissions()
         QtWidgets.QMessageBox.information(
-            self, "Permissões do macOS",
-            "Em Ajustes do Sistema → Privacidade e Segurança, ative o \"Light Gun Joypad\" em:\n\n"
-            "• Acessibilidade — para a arma mover o cursor e clicar\n"
-            "• Monitoramento de Entrada — para ler o controle em segundo plano\n\n"
-            "Depois, encerre e abra o aplicativo de novo.")
+            self, tr("macOS permissions"),
+            tr("In System Settings → Privacy & Security, turn on \"Light Gun Joypad\" under:\n\n"
+               "• Accessibility — so the gun can move the cursor and click\n"
+               "• Input Monitoring — to read the controller in the background\n\n"
+               "Then quit and open the app again."))
 
     def _check_perms(self) -> None:
         if sys.platform != "darwin":
@@ -1119,8 +1007,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.b_perm.setVisible(bool(missing))
         self.perm_label.setVisible(bool(missing))
         if missing:
-            self.perm_label.setText("<span style='color:#fbbf24'>Falta permissão do macOS: " + ", ".join(missing)
-                                    + ". Sem ela a arma não move o cursor / não lê o controle.</span>")
+            self.perm_label.setText("<span style='color:#fbbf24'>" + tr("Missing macOS permission: {names}. Without it "
+                                    "the gun can't move the cursor / read the controller.").format(
+                                    names=", ".join(tr(m) for m in missing)) + "</span>")
 
     def _toggle_overlay(self) -> None:
         on = not self.app.gun.overlay_on
@@ -1136,7 +1025,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if name:
             self._reload()
             if getattr(self, "tray", None) is not None:
-                self.tray.showMessage("Light Gun Joypad", f"Perfil: {name}", make_icon(GREEN), 2000)
+                self.tray.showMessage("Light Gun Joypad", tr("Profile: {name}").format(name=profile_label(name)),
+                                      make_icon(GREEN), 2000)
 
     def _check_yield(self, s: dict) -> None:
         """Modo mouse: detecta o touchpad/mouse real mexendo o cursor e faz a arma ceder."""
@@ -1173,7 +1063,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.app.gun.paused = not self.app.gun.paused
 
     def _cal_reset(self) -> None:
-        if QtWidgets.QMessageBox.question(self, "Calibração", "Apagar a calibração salva?") == QtWidgets.QMessageBox.Yes:
+        if QtWidgets.QMessageBox.question(self, tr("Calibration"), tr("Delete the saved calibration?")) == QtWidgets.QMessageBox.Yes:
             self.app.calibration_reset()
 
     def open_calibration(self) -> None:
@@ -1195,10 +1085,13 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self.isVisible():
             return
         if s["connected"]:
-            col, txt = (GREEN if s["bias_ok"] else AMBER), ("mira pausada" if s["paused"] else
-                                                            "cedendo ao touchpad" if s["yielding"] else "light gun ativa")
+            col, txt = (GREEN if s["bias_ok"] else AMBER), (tr("aim paused") if s["paused"] else
+                                                            tr("yielding to touchpad") if s["yielding"] else
+                                                            tr("light gun active"))
         else:
-            col, txt = RED, s["status"]
+            tpl, kw = s.get("status_t") or (s["status"], {})
+            col, txt = RED, tr(tpl).format(**kw)
+        self.status.setToolTip(txt)
         self.status.setText(f"<span style='color:{col.name()}'>●</span> {txt}")
         self.rate.setText(f"IMU {s['rate']}/s")
         self.preview.pos = self.app.gun.render_pos() if s["connected"] else s["pos"]
@@ -1211,19 +1104,19 @@ class MainWindow(QtWidgets.QMainWindow):
                                     for n in shown) or " ")
         self.i_dev.setText(s["device"] or "—")
         self.i_bias.setText(("ok (" + ", ".join(f"{b:.2f}" for b in s["bias"]) + " °/s)") if s["bias_ok"]
-                            else "<span style='color:#fbbf24'>apoie o controle parado ~1 s</span>")
+                            else "<span style='color:#fbbf24'>" + tr("rest the controller still for ~1 s") + "</span>")
         c = s["calibration"]
-        self.i_cal.setText(f"ok · erro {c['rms'] * 100:.2f}%" if c["loaded"]
-                           else "<span style='color:#fbbf24'>não calibrado (usando tamanho da tela)</span>")
+        self.i_cal.setText(tr("ok · error {pct}%").format(pct=f"{c['rms'] * 100:.2f}") if c["loaded"]
+                           else "<span style='color:#fbbf24'>" + tr("not calibrated (using screen size)") + "</span>")
         o = s["output"]
-        self.i_out.setText(o["name"] + (f"<br><span style='color:#f87171'>{o['error']}</span>" if o["error"] else ""))
-        self.i_mode.setText("mouse giroscópio" if s["mode"] == "relative" else "light gun (absoluto)")
+        self.i_out.setText(tr(o["name"]) + (f"<br><span style='color:#f87171'>{tr(o['error'])}</span>" if o["error"] else ""))
+        self.i_mode.setText(tr("gyro mouse") if s["mode"] == "relative" else tr("light gun (absolute)"))
         self.t_driver.setChecked(s["target"] == "lightgun")
         self.t_mouse.setChecked(s["target"] != "lightgun")
         self.t_cross.setChecked(s["overlay_on"])
         self.b_cal.setEnabled(s["source"] != "mouse")
-        self.b_cal.setToolTip("" if s["source"] != "mouse" else "O mouse comum não precisa de calibração.")
-        self.b_pause.setText("▶  Retomar mira" if s["paused"] else "⏸  Pausar mira")
+        self.b_cal.setToolTip("" if s["source"] != "mouse" else tr("The system mouse doesn't need calibration."))
+        self.b_pause.setText("▶  " + tr("Resume aim") if s["paused"] else "⏸  " + tr("Pause aim"))
         pressed = set(s["pressed"])
         for n, lab in self.button_rows.items():
             on = "true" if n in pressed else "false"
@@ -1235,7 +1128,7 @@ class MainWindow(QtWidgets.QMainWindow):
             for n in s["pressed"]:
                 if n.startswith(("BTN_", "KEY_")) and n not in self.button_rows:
                     self._add_button_row(n)
-        if s["profile"] != self.profile_combo.currentText():
+        if s["profile"] != self.profile_combo.currentData():
             self._reload()
 
     # ---- janela/bandeja ----------------------------------------------------
@@ -1251,8 +1144,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.hide()
             if not getattr(self, "_told", False):
                 self._told = True
-                self.tray.showMessage("Light Gun Joypad", "Continua rodando aqui na bandeja. "
-                                      "Clique no ícone para abrir; botão direito para sair.", make_icon(GREEN), 4000)
+                self.tray.showMessage("Light Gun Joypad", tr("Still running here in the tray. "
+                                      "Click the icon to open; right-click to quit."), make_icon(GREEN), 4000)
         else:
             self.quit_app()
 
@@ -1269,18 +1162,33 @@ class Tray(QtWidgets.QSystemTrayIcon):
         self.win = win
         self.app = win.app
         self.setToolTip("Light Gun Joypad")
-        m = QtWidgets.QMenu()
-        m.addAction("Abrir painel", win.show_window)
-        self.a_pause = m.addAction("Pausar mira", win.toggle_pause)
-        m.addAction("Recentrar (mire no centro)", self.app.gun.recenter)
-        m.addAction("Calibrar…", win.open_calibration)
-        m.addAction("Estande de teste…", win.open_test)
-        self.profiles_menu = m.addMenu("Perfil")
-        m.addSeparator()
-        m.addAction("Encerrar", win.quit_app)
-        self.setContextMenu(m)
-        self.menu = m
+        self.menu = QtWidgets.QMenu()
+        self.setContextMenu(self.menu)
         self.activated.connect(self._activated)
+        self._last = None
+        self.retranslate()
+
+    def retranslate(self) -> None:
+        win = self.win
+        m = self.menu
+        m.clear()
+        m.addAction(tr("Open panel"), win.show_window)
+        self.a_pause = m.addAction(tr("Pause aim"), win.toggle_pause)
+        m.addAction(tr("Recenter (aim at the center)"), self.app.gun.recenter)
+        m.addAction(tr("Calibrate…"), win.open_calibration)
+        m.addAction(tr("Test range…"), win.open_test)
+        self.profiles_menu = m.addMenu(tr("Profile"))
+        # Idioma: rótulo sempre em inglês, cada idioma no próprio nome.
+        lang = m.addMenu(SELECTOR_LABEL)
+        group = QtWidgets.QActionGroup(lang)
+        for code, native in LANGUAGES.items():
+            a = lang.addAction(native)
+            a.setCheckable(True)
+            a.setChecked(code == current_language())
+            group.addAction(a)
+            a.triggered.connect(lambda _=False, c=code: win.change_language(c))
+        m.addSeparator()
+        m.addAction(tr("Quit"), win.quit_app)
         self._last = None
         self.rebuild_profiles()
 
@@ -1288,7 +1196,7 @@ class Tray(QtWidgets.QSystemTrayIcon):
         self.profiles_menu.clear()
         group = QtWidgets.QActionGroup(self.profiles_menu)
         for name in self.app.store.profiles:
-            a = self.profiles_menu.addAction(name)
+            a = self.profiles_menu.addAction(profile_label(name))
             a.setCheckable(True)
             a.setChecked(name == self.app.store.active)
             group.addAction(a)
@@ -1309,12 +1217,13 @@ class Tray(QtWidgets.QSystemTrayIcon):
         self._last = key
         col = MUTED if not s["connected"] else (AMBER if s["paused"] or not s["bias_ok"] else GREEN)
         self.setIcon(make_icon(col))
-        tip = "Light Gun Joypad — " + (("pausada" if s["paused"] else "ativa") if s["connected"] else "sem controle")
+        tip = "Light Gun Joypad — " + ((tr("paused") if s["paused"] else tr("active")) if s["connected"]
+                                       else tr("no controller"))
         self.setToolTip(tip)
-        self.a_pause.setText("Retomar mira" if s["paused"] else "Pausar mira")
+        self.a_pause.setText(tr("Resume aim") if s["paused"] else tr("Pause aim"))
         if prev is not None and prev[0] != s["connected"]:
-            self.showMessage("Light Gun Joypad", ("Controle conectado: " + s["device"]) if s["connected"]
-                             else "Controle desconectado", make_icon(col), 2500)
+            self.showMessage("Light Gun Joypad", tr("Controller connected: {name}").format(name=s["device"])
+                             if s["connected"] else tr("Controller disconnected"), make_icon(col), 2500)
 
 
 # --------------------------------------------------------------------------
@@ -1344,6 +1253,7 @@ def run_gui(config_path=None, calib_path=None, start_hidden: bool = False) -> in
     server.listen(APP_ID)
 
     redirect_output_to_log()
+    set_language(saved_language())
     qapp.setStyle("Fusion")
     qapp.setPalette(dark_palette())
     qapp.setStyleSheet(STYLE)

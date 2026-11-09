@@ -30,8 +30,8 @@ class Rec:
 def test_store_profiles_roundtrip(tmp_path):
     p = tmp_path / "c.json"
     s = ConfigStore(p)
-    assert "Padrão (light gun)" in s.profiles
-    s.create("Meu jogo", "Arcade tiro rápido")
+    assert "Default (light gun)" in s.profiles
+    s.create("Meu jogo", "Rapid-fire arcade")
     s.active = "Meu jogo"
     s.save()
     s2 = ConfigStore(p)

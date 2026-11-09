@@ -105,6 +105,21 @@ pausar, recentrar, calibrar, trocar de perfil ou encerrar. A cor do ícone
 mostra o estado: verde = ativa, amarelo = pausada ou giroscópio sem calibrar,
 cinza = sem controle. Tudo o que você muda vale na hora.
 
+### Idiomas
+
+O aplicativo está em **inglês** (padrão), **português (Brasil)**, **espanhol**,
+**francês**, **alemão** e **chinês simplificado**. A escolha fica salva e muda
+na hora, sem reiniciar.
+
+O seletor **🌐 Language**, no topo da janela e no menu da bandeja, fica
+**sempre em inglês**, e cada idioma aparece com o próprio nome ("English",
+"中文"…). Se alguém escolher um idioma por engano, basta procurar
+"🌐 Language" e clicar em "English".
+
+Para traduzir para outro idioma, copie `src/lightgun_joypad/locales/pt_BR.py`,
+traduza os textos, registre o código em `LANGUAGES` (`i18n.py`) e rode
+`pytest`. O teste `tests/test_i18n.py` aponta qualquer texto que faltar.
+
 ### Fontes da mira (aba Controle)
 
 A emulação da light gun é a mesma para todas as fontes; o que muda é quem
@@ -286,6 +301,9 @@ src/lightgun_joypad/
   calibration.py   calibração guiada (centro + 4 cantos)
   client.py        núcleo do cliente residente (thread do controle, perfis, calibração)
   gui.py           aplicativo Qt: janela de configuração, bandeja, calibração e estande
+  gui_fields.py    lista de ajustes mostrados no aplicativo
+  i18n.py          idiomas (tr(), idioma salvo)
+  locales/         traduções: pt_BR, es, fr, de, zh_CN (+ ajuda em inglês)
   simulator.py     estande de tiro (pygame)
   inputs/          linux_evdev (hid-nintendo) e switch_hid (hidapi, protocolo cru)
   outputs/         linux_uinput, windows_sendinput, console (--dry-run)

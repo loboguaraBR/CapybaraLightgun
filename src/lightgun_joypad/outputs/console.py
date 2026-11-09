@@ -12,7 +12,7 @@ COLS, ROWS = 48, 15
 
 
 class ConsoleOutput:
-    name = "console (simulação, sem mexer no mouse)"
+    name = "console (simulation, mouse untouched)"
 
     def __init__(self):
         self.x = self.y = 0.5

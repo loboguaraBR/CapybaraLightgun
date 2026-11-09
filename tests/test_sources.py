@@ -117,5 +117,5 @@ def test_auto_profile_switch(tmp_path):
     app = ClientApp(s, str(tmp_path / "cal.json"), output_backend="none")
     assert app.auto_switch('WM_CLASS = "mame" "MAME: Time Crisis"') == "MAME (-offscreen_reload)"
     assert s.active == "MAME (-offscreen_reload)"
-    assert app.auto_switch('WM_CLASS = "google-chrome"') == "Padrão (light gun)"  # volta ao manual
+    assert app.auto_switch('WM_CLASS = "google-chrome"') == "Default (light gun)"  # volta ao manual
     assert app.auto_switch("Light Gun Joypad") is None

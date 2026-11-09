@@ -11,12 +11,12 @@ from .base import ButtonState, DeviceLost, ImuSample, NoDeviceFound, PointerSamp
 #   "playstation" DualSense / DualShock 4
 #   "gamepad"     outro controle com giroscópio (SDL: Steam Deck/Controller, 8BitDo...)
 #   "mouse"       mouse do sistema (para quem não tem controle com giroscópio)
-SOURCES = {
-    "auto": "Automático (qualquer controle com giroscópio)",
+SOURCES = {  # rótulos em inglês (a interface traduz)
+    "auto": "Automatic (any controller with a gyroscope)",
     "switch": "Nintendo Switch (Joy-Con / Pro Controller)",
     "playstation": "PlayStation (DualSense PS5 / DualShock 4)",
-    "gamepad": "Outro controle com giroscópio (SDL)",
-    "mouse": "Mouse do sistema (sem controle)",
+    "gamepad": "Other controller with a gyroscope (SDL)",
+    "mouse": "System mouse (no controller)",
 }
 
 
@@ -78,11 +78,23 @@ def open_source(cfg: dict):
     if src == "gamepad" or (src == "auto"):
         if ("sdl", sdl) not in plan:
             plan.append(("sdl", sdl))
+    no_gyro: list = []
+
+    def attempt(label, fn):
+        try:
+            return fn()
+        except (ImportError, NoDeviceFound, OSError) as exc:
+            errors.append(f"{label}: {exc}")
+            no_gyro.extend(getattr(exc, "no_gyro", []) or [])
+            return None
+
     for label, fn in plan:
-        s = _try(errors, label, fn)
+        s = attempt(label, fn)
         if s is not None:
             return s
-    raise NoDeviceFound("nenhum controle com giroscópio encontrado.\n  " + "\n  ".join(errors))
+    exc = NoDeviceFound("nenhum controle com giroscópio encontrado.\n  " + "\n  ".join(errors))
+    exc.no_gyro = no_gyro
+    raise exc
 
 
 def list_all() -> list:

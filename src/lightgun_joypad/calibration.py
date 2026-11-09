@@ -144,7 +144,7 @@ class Calibrator:
             self.tracker.yaw_offset = heading(forward)
         uv = project(rotate_yaw(forward, -self.tracker.yaw_offset))
         if uv is None:
-            self.message = "Mira muito fora (apontando para o lado). Tente de novo."
+            self.message = "Aim too far off (pointing sideways). Try again."
             return False
         self.src.append(uv)
         self.dst.append(TARGETS[self.step][1])
@@ -154,7 +154,7 @@ class Calibrator:
             try:
                 H, rms = fit_calibration(self.src, self.dst)
             except ValueError:
-                self.message = "Pontos inválidos — recomeçando."
+                self.message = "Invalid points — starting over."
                 self.step, self.src, self.dst = 0, [], []
                 return False
             self.tracker.set_homography(H)

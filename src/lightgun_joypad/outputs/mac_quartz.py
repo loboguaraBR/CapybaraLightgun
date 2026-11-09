@@ -15,7 +15,7 @@ _BTN = {  # nome -> (botão, desce, sobe, arrasta)
 
 
 class QuartzOutput:
-    name = "mouse do sistema (Quartz)"
+    name = "system mouse (Quartz)"
 
     def __init__(self, region, keys, monitor=None):
         self.region = [float(v) for v in region]

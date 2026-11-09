@@ -35,7 +35,7 @@ class ClientApp:
             self.tracker.bias.bias = list(self.calib["gyro_bias_dps"])
         self.gun = LightGun(cfg, self.tracker, self.out)
         self.lock = threading.RLock()
-        self.status = "procurando controle..."
+        self._status("Looking for a controller…")
         self.device = ""
         self.connected = False
         self.src = None
@@ -56,26 +56,31 @@ class ClientApp:
                 src = open_source(cfg)
             except NoDeviceFound as exc:
                 self.connected = False
-                self.status = "sem controle — " + str(exc).splitlines()[-1].strip()
+                if getattr(exc, "no_gyro", None):
+                    self._status("{names}: no gyroscope (regular Xbox controllers don't have one). Use the system mouse.",
+                                 names=", ".join(exc.no_gyro))
+                else:
+                    self._status("No controller found. Connect a controller with a gyroscope or choose the system mouse.")
+                self.status_detail = str(exc)
                 self.stop.wait(2.0)
                 continue
             except Exception as exc:
                 self.connected = False
-                self.status = f"erro ao abrir o controle: {exc}"
+                self._status("Error opening the controller: {error}", error=str(exc))
                 self.stop.wait(3.0)
                 continue
             self.src = src
             self._src_choice = cfg.get("input_source", "auto")
             self.device = src.name
             self.connected = True
-            self.status = "conectado"
+            self._status("connected")
             print(f"controle conectado: {src.name}", flush=True)
             try:
                 self.gun.run(src)
             except DeviceLost as exc:
-                self.status = f"desconectado ({exc})"
+                self._status("Disconnected ({error})", error=str(exc))
             except Exception as exc:
-                self.status = f"erro: {exc}"
+                self._status("Error: {error}", error=str(exc))
             finally:
                 self.connected = False
                 self.src = None
@@ -86,6 +91,11 @@ class ClientApp:
                     pass
                 print(f"controle: {self.status}", flush=True)
             self.stop.wait(1.0)
+
+    def _status(self, template: str, **kw) -> None:
+        """Estado em inglês (log) + modelo para a interface traduzir."""
+        self.status_t = (template, kw)
+        self.status = template.format(**kw)
 
     def reconnect(self) -> None:
         src = self.src
@@ -173,6 +183,7 @@ class ClientApp:
             "connected": self.connected,
             "device": self.device,
             "status": self.status,
+            "status_t": self.status_t,
             "rate": round(self._rate),
             "bias_ok": self.tracker.bias.acquired,
             "bias": [round(b, 3) for b in self.tracker.bias.bias],

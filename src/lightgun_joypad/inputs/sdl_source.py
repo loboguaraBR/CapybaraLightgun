@@ -137,8 +137,10 @@ class SdlSource:
             sdl2.SDL_GameControllerClose(c)
         sdl2.SDL_QuitSubSystem(sdl2.SDL_INIT_GAMECONTROLLER | sdl2.SDL_INIT_SENSOR)
         if no_gyro:
-            raise NoDeviceFound(f"{', '.join(no_gyro)}: sem giroscópio (controles de Xbox comuns não têm). "
-                                "Use o mouse comum ou um controle com giroscópio.")
+            exc = NoDeviceFound(f"{', '.join(no_gyro)}: sem giroscópio (controles de Xbox comuns não têm). "
+                                "Use o mouse do sistema ou um controle com giroscópio.")
+            exc.no_gyro = no_gyro
+            raise exc
         raise NoDeviceFound("nenhum controle com giroscópio pelo SDL")
 
     def rumble(self, ms: int = 45, strength: float = 0.7) -> None:

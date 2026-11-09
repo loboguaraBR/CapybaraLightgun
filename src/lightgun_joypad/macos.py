@@ -184,9 +184,9 @@ def open_privacy(pane: str) -> None:
 def missing_permissions() -> list:
     out = []
     if not accessibility_ok():
-        out.append("Acessibilidade")
+        out.append("Accessibility")
     if not input_monitoring_ok():
-        out.append("Monitoramento de Entrada")
+        out.append("Input Monitoring")
     return out
 
 

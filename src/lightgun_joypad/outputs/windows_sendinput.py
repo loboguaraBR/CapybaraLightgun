@@ -99,7 +99,7 @@ def monitors() -> list:
 
 
 class SendInputOutput:
-    name = "mouse do sistema (SendInput)"
+    name = "system mouse (SendInput)"
 
     def __init__(self, region, keys, monitor=None):
         _set_dpi_aware()

@@ -64,7 +64,7 @@ class UInputOutput:
         self.region = [float(v) for v in region]
         self.target = target
         driver = target == "lightgun"
-        self.name = "light gun virtual (driver, cursor livre)" if driver else "mouse do sistema (absoluto)"
+        self.name = "virtual light gun (driver, cursor free)" if driver else "system mouse (absolute)"
         absinfo = AbsInfo(value=MAX // 2, min=0, max=MAX, fuzz=0, flat=0, resolution=0)
         try:
             self.mouse = UInput(

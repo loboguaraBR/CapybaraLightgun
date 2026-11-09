@@ -36,7 +36,7 @@ def open_output(cfg: dict, backend: str | None = None):
 
 
 class NullOutput:
-    name = "nenhuma (teste)"
+    name = "none (test)"
 
     def move(self, x, y): pass
 
@@ -64,7 +64,7 @@ class OutputProxy:
 
     @property
     def name(self) -> str:
-        return getattr(self.real, "name", "nenhuma")
+        return getattr(self.real, "name", "none")
 
     def reconfigure(self, cfg: dict) -> None:
         sig = (self.backend or cfg.get("output_backend"), tuple(cfg.get("region") or ()), cfg.get("monitor"),
@@ -82,8 +82,8 @@ class OutputProxy:
                 self.real = open_output(cfg, self.backend)
                 self.error = ""
                 if cfg.get("output_target") == "lightgun" and not sys.platform.startswith("linux"):
-                    self.error = ("O modo 'só light gun' existe só no Linux (no Windows e no Mac precisaria de "
-                                  "um driver do sistema). Usando o mouse do sistema.")
+                    self.error = ("Light-gun-only (driver) mode exists only on Linux (Windows and macOS would "
+                                  "need a system driver). Using the system mouse.")
             except Exception as exc:
                 self.error = str(exc)
             self.sig = sig

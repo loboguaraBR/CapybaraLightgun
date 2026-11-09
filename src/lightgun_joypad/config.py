@@ -111,18 +111,19 @@ DEFAULTS: dict = {
     },
 }
 
+# Rótulos em inglês; a interface traduz com i18n.tr().
 ACTIONS = {
-    "": "nada",
-    "trigger": "Gatilho (clique esquerdo)",
-    "autofire": "Tiro automático",
-    "offscreen_shot": "Tiro fora da tela (recarregar)",
-    "mouse_left": "Clique esquerdo",
-    "mouse_right": "Clique direito",
-    "mouse_middle": "Clique do meio",
-    "recenter": "Recentrar mira",
-    "toggle": "Pausar/retomar mira",
-    "toggle_crosshair": "Mostrar/esconder mira na tela",
-    "key": "Tecla do teclado…",
+    "": "nothing",
+    "trigger": "Trigger (left click)",
+    "autofire": "Auto-fire",
+    "offscreen_shot": "Off-screen shot (reload)",
+    "mouse_left": "Left click",
+    "mouse_right": "Right click",
+    "mouse_middle": "Middle click",
+    "recenter": "Recenter aim",
+    "toggle": "Pause/resume aim",
+    "toggle_crosshair": "Show/hide on-screen crosshair",
+    "key": "Keyboard key…",
 }
 
 KEY_NAMES = (
@@ -141,29 +142,30 @@ BUTTON_NAMES = ["ZR", "R", "ZL", "L", "A", "B", "X", "Y", "UP", "DOWN", "LEFT", 
 BUTTON_LABELS = {
     "ZR": "ZR · R2", "R": "R · R1", "ZL": "ZL · L2", "L": "L · L1",
     "A": "A · ○", "B": "B · ✕", "X": "X · △", "Y": "Y · □",
-    "PLUS": "+ · Options", "MINUS": "− · Create/Share", "HOME": "Home · PS", "CAPTURE": "Captura · touchpad",
+    "PLUS": "+ · Options", "MINUS": "− · Create/Share", "HOME": "Home · PS", "CAPTURE": "Capture · touchpad",
     "RSTICK": "R3", "LSTICK": "L3", "UP": "↑", "DOWN": "↓", "LEFT": "←", "RIGHT": "→",
-    "MOUSE_LEFT": "Mouse esq.", "MOUSE_RIGHT": "Mouse dir.", "MOUSE_MIDDLE": "Mouse meio",
-    "MOUSE_X1": "Mouse lateral 1", "MOUSE_X2": "Mouse lateral 2",
+    "MOUSE_LEFT": "Mouse left", "MOUSE_RIGHT": "Mouse right", "MOUSE_MIDDLE": "Mouse middle",
+    "MOUSE_X1": "Mouse side 1", "MOUSE_X2": "Mouse side 2",
 }
 
-# Perfis prontos (sobreposições em cima de DEFAULTS).
+# Perfis prontos (sobreposições em cima de DEFAULTS). Nomes em inglês; a
+# interface mostra traduzido enquanto o perfil mantém o nome original.
 PRESETS: dict = {
-    "Padrão (light gun)": {},
+    "Default (light gun)": {},
     "MAME (-offscreen_reload)": {
         "buttons": dict(DEFAULTS["buttons"], R="mouse_right", L="mouse_right"),
     },
-    "Arcade tiro rápido": {
+    "Rapid-fire arcade": {
         "buttons": dict(DEFAULTS["buttons"], ZR="autofire", ZL="trigger"),
         "autofire_hz": 12,
         "smoothing": {"enabled": True, "min_cutoff": 1.8, "beta": 10.0, "d_cutoff": 1.0},
     },
-    "Precisão (tiro ao alvo)": {
+    "Precision (target shooting)": {
         "smoothing": {"enabled": True, "min_cutoff": 0.6, "beta": 4.0, "d_cutoff": 1.0},
         "aim": dict(DEFAULTS["aim"], jitter_lock=0.0015),
         "shot": {"lookback_ms": 35, "freeze_ms": 90},
     },
-    "Mouse do sistema (sem controle)": {
+    "System mouse (no controller)": {
         "input_source": "mouse",
         "motion": {"interp_ms": 0, "output_hz": 250, "max_extrap_ms": 0},
         "smoothing": {"enabled": False, "min_cutoff": 1.2, "beta": 6.0, "d_cutoff": 1.0},
@@ -172,11 +174,23 @@ PRESETS: dict = {
     "PlayStation (DualSense/DS4)": {
         "input_source": "playstation",
     },
-    "Mouse giroscópio (PC/FPS)": {
+    "Gyro mouse (PC/FPS)": {
         "mode": "relative",
         "relative_speed": 1.5,
         "buttons": dict(DEFAULTS["buttons"], ZR="mouse_left", ZL="mouse_right", R="key:r", L="key:shift"),
     },
+}
+
+
+# Nomes antigos (em português) dos perfis prontos -> nomes atuais. Os ajustes
+# do usuário são mantidos; só o nome muda, para aparecer traduzido.
+LEGACY_PRESET_NAMES = {
+    "Padrão (light gun)": "Default (light gun)",
+    "Arcade tiro rápido": "Rapid-fire arcade",
+    "Precisão (tiro ao alvo)": "Precision (target shooting)",
+    "Mouse giroscópio (PC/FPS)": "Gyro mouse (PC/FPS)",
+    "Mouse comum como light gun": "System mouse (no controller)",
+    "Mouse do sistema (sem controle)": "System mouse (no controller)",
 }
 
 
@@ -216,7 +230,7 @@ class ConfigStore:
     def __init__(self, path: str | Path | None = None):
         self.path = Path(path) if path else default_config_path()
         self.lock = threading.RLock()
-        self.active = "Padrão (light gun)"
+        self.active = next(iter(PRESETS))
         self.profiles: dict = {}
         self.load()
 
@@ -226,10 +240,17 @@ class ConfigStore:
             with open(self.path, encoding="utf-8") as fh:
                 data = json.load(fh)
         if "profiles" in data:
-            self.profiles = {n: merge(DEFAULTS, p) for n, p in data["profiles"].items()}
-            self.active = data.get("active") or next(iter(self.profiles), self.active)
+            profiles = {}
+            for n, p in data["profiles"].items():
+                new = LEGACY_PRESET_NAMES.get(n, n)
+                if new in data["profiles"] or new in profiles:
+                    new = n  # já existe um com o nome novo: não mexe
+                profiles[new] = merge(DEFAULTS, p)
+            self.profiles = profiles
+            active = data.get("active") or next(iter(self.profiles), self.active)
+            self.active = active if active in profiles else LEGACY_PRESET_NAMES.get(active, active)
         elif data:  # formato antigo: config única
-            self.profiles = {"Padrão (light gun)": merge(DEFAULTS, data)}
+            self.profiles = {next(iter(PRESETS)): merge(DEFAULTS, data)}
         if not self.profiles:
             self.profiles = {n: merge(DEFAULTS, p) for n, p in PRESETS.items()}
         if self.active not in self.profiles:
