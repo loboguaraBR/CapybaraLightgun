@@ -95,7 +95,7 @@ def _cmd_buttons(args, cfg) -> int:
             if isinstance(ev, ButtonState) and ev.pressed:
                 logical = sorted(n for n in ev.pressed if not n.startswith(("BTN_", "KEY_", "CODE_")))
                 raw = sorted(n for n in ev.pressed if n.startswith(("BTN_", "KEY_", "CODE_")))
-                acts = [f"{n}->{cfg['buttons'][n]}" for n in logical + raw if n in cfg["buttons"]]
+                acts = [f"{n}->{cfg['buttons'][n]}" for n in logical + raw if cfg["buttons"].get(n)]
                 print(f"botões: {logical}  crus: {raw}  ações: {acts}")
     except (KeyboardInterrupt, DeviceLost):
         pass

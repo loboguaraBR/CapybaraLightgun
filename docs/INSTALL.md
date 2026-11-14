@@ -242,6 +242,28 @@ BlueZ setting is missing. Run
 Make one **profile** per game in the *Profiles* tab. Type words from the game
 window (e.g. `retroarch`, `mame`) to switch profiles automatically.
 
+### NES Zapper in RetroArch (FCEUmm core)
+
+Tested on Linux (X11) with RetroArch 1.22:
+
+1. In Capybara Lightgun, use the **System mouse** output. RetroArch's default
+   input driver (`x`) then sees the gun. *Light gun only (driver)* mode is
+   invisible to that driver.
+2. *Quick Menu → Controls → Port 2 Controls → Device Type* = **Zapper**. Duck
+   Hunt and most Zapper games only read **port 2**: on port 1 the crosshair
+   shows up but shots don't register.
+3. *Settings → Input → Port 2 Controls → Mouse Index* = **0**. The `x` driver
+   only serves mouse 0: with another index the crosshair doesn't even appear.
+4. *Quick Menu → Core Options → Zapper Mode* = **Crosshair light gun**
+   (`fceumm_zapper_mode = "clightgun"`). *Mouse* mode uses relative motion and
+   the aim drifts.
+5. The trigger is the left click (`input_player2_gun_trigger_mbtn = "1"`, the
+   default). In Capybara, check on the *Buttons* tab that the button you use
+   as the trigger is set to *Trigger*.
+
+Close RetroArch before editing `retroarch.cfg` by hand, because it saves its
+settings when it exits.
+
 ---
 
 ## 8. Troubleshooting

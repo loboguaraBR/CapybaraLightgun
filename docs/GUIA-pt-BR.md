@@ -277,6 +277,10 @@ que aceite mouse como light gun:
   `offscreen_shot`.
 - **MAME**: `-lightgun -lightgun_device mouse`. Com `-offscreen_reload`, o 2º botão recarrega.
 - **Dolphin/PCSX2/DuckStation**: mapeie o ponteiro para o mouse.
+- **Zapper do NES (RetroArch + FCEUmm)**: saída *Mouse do sistema*; Zapper na
+  **porta 2** (Duck Hunt só lê a porta 2); *Índice do mouse* da porta 2 = `0`
+  (o driver `x` só atende o mouse 0); *Zapper Mode* = *Crosshair light gun*.
+  Passo a passo em [INSTALACAO.md](INSTALACAO.md#zapper-do-nes-no-retroarch-core-fceumm).
 
 Em tela cheia com vários monitores, use `monitor` (Windows) ou `region`.
 

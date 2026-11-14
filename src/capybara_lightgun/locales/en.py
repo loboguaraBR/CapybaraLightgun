@@ -22,6 +22,14 @@ T = {'@help': '\n'
           'PC games aimed with the mouse.</li>\n'
           "<li><b>Gyro mouse</b> (Output tab → Aim mode) — for PC shooters that don't accept an absolute mouse.</li>\n"
           '</ul>\n'
+          '<h3>NES Zapper (RetroArch + FCEUmm)</h3>\n'
+          '<ul>\n'
+          "<li>Simplest setup: <i>System mouse</i> output and RetroArch's default input driver (<i>x</i> on Linux).</li>\n"
+          '<li>Quick Menu → Controls → <b>Port 2</b> Controls → Device Type = <i>Zapper</i>. Duck Hunt and most Zapper games only read port 2.</li>\n'
+          '<li>Settings → Input → Port 2 Controls → Mouse Index = <i>0</i>. With the <i>x</i> driver only mouse 0 aims.</li>\n'
+          '<li>Quick Menu → Core Options → Zapper Mode = <i>Crosshair light gun</i> (not <i>Mouse</i>).</li>\n'
+          '<li>Close RetroArch before editing <code>retroarch.cfg</code> by hand: it saves its settings when it exits.</li>\n'
+          '</ul>\n'
           '<h3>Precision tips</h3>\n'
           '<ul>\n'
           "<li>Calibrate <b>in the position you'll play</b> (sitting/standing, distance). Moved? Recalibrate.</li>\n"

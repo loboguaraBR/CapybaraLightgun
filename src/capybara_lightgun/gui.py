@@ -814,10 +814,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         def changed(a, n=name):
             b = dict(self.work["buttons"])
-            if a:
-                b[n] = a
-            else:
-                b.pop(n, None)
+            b[n] = a or ""  # "" = nada (fica salvo; o padrão não o preenche de volta)
             self._changed("buttons", b)
 
         picker.changed.connect(changed)

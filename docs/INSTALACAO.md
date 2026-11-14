@@ -247,6 +247,28 @@ e aperte um botão do Joy-Con.
 Crie um **perfil** por jogo na aba *Perfis*. Escreva palavras da janela do
 jogo (ex.: `retroarch`, `mame`) para o perfil trocar sozinho.
 
+### Zapper do NES no RetroArch (core FCEUmm)
+
+Testado no Linux (X11) com RetroArch 1.22:
+
+1. No Capybara Lightgun, use a saída **Mouse do sistema**. Assim o driver de
+   entrada padrão do RetroArch (`x`) já enxerga a arma. O modo *Só light gun
+   (driver)* fica invisível para esse driver.
+2. *Menu rápido → Controles → Controles da porta 2 → Tipo de dispositivo* =
+   **Zapper**. O Duck Hunt e a maioria dos jogos de Zapper só leem a
+   **porta 2**: na porta 1 a mira aparece, mas o tiro não sai.
+3. *Configurações → Entrada → Controles da porta 2 → Índice do mouse* = **0**.
+   O driver `x` só atende o mouse 0: com outro índice a mira nem aparece.
+4. *Menu rápido → Opções do núcleo → Zapper Mode* = **Crosshair light gun**
+   (`fceumm_zapper_mode = "clightgun"`). O modo *Mouse* usa movimento relativo
+   e a mira desalinha.
+5. O gatilho é o clique esquerdo (`input_player2_gun_trigger_mbtn = "1"`, o
+   padrão). No Capybara, confira na aba *Botões* que o botão que você usa como
+   gatilho está em *Gatilho*.
+
+Feche o RetroArch antes de editar o `retroarch.cfg` à mão, porque ele grava as
+configurações ao sair.
+
 ---
 
 ## 8. Solução de problemas

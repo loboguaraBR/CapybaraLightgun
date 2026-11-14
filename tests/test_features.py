@@ -156,3 +156,20 @@ def test_motion_is_uniform_with_bursty_bluetooth():
     # com: passos pequenos e quase nunca parado durante o giro
     assert smooth_max < raw_max * 0.5
     assert smooth_still < raw_still * 0.5
+
+
+def test_old_profile_gets_new_default_buttons_but_keeps_its_own(tmp_path):
+    """Perfil salvo antes do suporte a mouse: ganha MOUSE_*, sem perder o que já tinha."""
+    import json
+
+    from capybara_lightgun.config import ConfigStore
+
+    p = tmp_path / "c.json"
+    p.write_text(json.dumps({"active": "old", "profiles": {
+        "old": {"buttons": {"ZR": "autofire", "A": "", "BTN_TR2": "key:r"}},
+    }}))
+    b = ConfigStore(p).effective()["buttons"]
+    assert b["MOUSE_LEFT"] == "trigger"  # veio do padrão
+    assert b["ZR"] == "autofire"  # mapeamento do perfil manda
+    assert b["A"] == ""  # "nada" escolhido pelo usuário não volta
+    assert b["BTN_TR2"] == "key:r"  # nome cru do evdev continua

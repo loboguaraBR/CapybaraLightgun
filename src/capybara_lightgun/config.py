@@ -226,7 +226,10 @@ def merge(base: dict, over: dict) -> dict:
     out = copy.deepcopy(base)
     for k, v in (over or {}).items():
         if k == "buttons" and isinstance(v, dict):
-            out[k] = dict(v)  # mapa de botões do perfil substitui o padrão
+            # O mapa do perfil vale por cima do padrão, e botões que o perfil
+            # ainda não conhece (ex.: MOUSE_* em perfis antigos) vêm do padrão.
+            # "Nada" fica gravado como "" e por isso não volta.
+            out[k] = dict(out.get(k) or {}, **v)
         elif isinstance(v, dict) and isinstance(out.get(k), dict):
             out[k] = merge(out[k], v)
         else:
