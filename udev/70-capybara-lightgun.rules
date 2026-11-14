@@ -16,6 +16,11 @@ KERNEL=="hidraw*", KERNELS=="*057E:200[679E]*", TAG+="uaccess"
 # (RetroArch com driver de entrada udev).
 SUBSYSTEM=="input", ATTRS{id/vendor}=="1209", ATTRS{id/product}=="4c4a", ENV{LIBINPUT_IGNORE_DEVICE}="1", TAG+="uaccess"
 
+# Teclas virtuais ("Capybara Lightgun Keys", botões que viram teclas): o
+# RetroArch com driver udev lê o teclado direto do evdev. O sistema classifica
+# este dispositivo como ID_INPUT_KEY, não como teclado, então precisa da própria linha.
+SUBSYSTEM=="input", ATTRS{id/vendor}=="1209", ATTRS{id/product}=="4c48", TAG+="uaccess"
+
 # PlayStation: DualShock 4 (PS4) e DualSense (PS5) — sensores, botões, vibração e hidraw
 SUBSYSTEM=="input", KERNEL=="event*", ATTRS{id/vendor}=="054c", TAG+="uaccess"
 KERNEL=="hidraw*", ATTRS{idVendor}=="054c", TAG+="uaccess"

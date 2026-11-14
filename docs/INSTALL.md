@@ -244,25 +244,62 @@ window (e.g. `retroarch`, `mame`) to switch profiles automatically.
 
 ### NES Zapper in RetroArch (FCEUmm core)
 
-Tested on Linux (X11) with RetroArch 1.22:
+Tested on Linux (X11, Cinnamon) with RetroArch 1.22, on a laptop connected to
+a 4K TV as a second monitor.
 
-1. In Capybara Lightgun, use the **System mouse** output. RetroArch's default
-   input driver (`x`) then sees the gun. *Light gun only (driver)* mode is
-   invisible to that driver.
-2. *Quick Menu → Controls → Port 2 Controls → Device Type* = **Zapper**. Duck
+**Recommended on Linux: *Light gun only (driver)* + the `udev` input driver.**
+The gun never moves the system cursor, so it can't click outside the game
+window (which pauses RetroArch) or drag the cursor to the other monitor.
+
+1. In Capybara Lightgun, use the **Light gun only (driver)** output. In this
+   mode the gun covers the whole game screen on whichever monitor it is; the
+   *Monitor* field is ignored.
+2. Permissions (once): the `70-capybara-lightgun.rules` rule (installed by
+   `scripts/fix-linux-joycon.sh`) grants access to the gun and the virtual
+   keys. With `udev`, RetroArch also reads the **keyboard** straight from
+   evdev; without access, F1, Esc and the keys sent by the buttons do nothing
+   inside it. Install the optional rule (or join the `input` group):
+   ```bash
+   sudo cp udev/71-retroarch-udev-keyboard.rules /etc/udev/rules.d/
+   sudo udevadm control --reload && sudo udevadm trigger -s input
+   ```
+   It lets any program running as your user read the keyboard, the same as
+   the `input` group.
+3. *Settings → Drivers → Input* = **udev** (`input_driver = "udev"`), then
+   restart RetroArch.
+4. *Quick Menu → Controls → Port 2 Controls → Device Type* = **Zapper**. Duck
    Hunt and most Zapper games only read **port 2**: on port 1 the crosshair
    shows up but shots don't register.
-3. *Settings → Input → Port 2 Controls → Mouse Index* = **0**. The `x` driver
-   only serves mouse 0: with another index the crosshair doesn't even appear.
-4. *Quick Menu → Core Options → Zapper Mode* = **Crosshair light gun**
-   (`fceumm_zapper_mode = "clightgun"`). *Mouse* mode uses relative motion and
-   the aim drifts.
-5. The trigger is the left click (`input_player2_gun_trigger_mbtn = "1"`, the
+5. *Settings → Input → Port 2 Controls → Mouse Index* = the **Capybara
+   Lightgun (driver)** device. Unless you are in the `input` group it is the
+   only mouse RetroArch can open, so it is index **0**.
+6. *Quick Menu → Core Options → Zapper Mode* = **Crosshair light gun**
+   (`fceumm_zapper_mode = "clightgun"`) with *Show Crosshair* on: the on-screen
+   crosshair is the game's. *Mouse* mode uses relative motion and the aim
+   drifts.
+7. The trigger is the left click (`input_player2_gun_trigger_mbtn = "1"`, the
    default). In Capybara, check on the *Buttons* tab that the button you use
    as the trigger is set to *Trigger*.
 
-Close RetroArch before editing `retroarch.cfg` by hand, because it saves its
-settings when it exits.
+**Alternative: *System mouse* + the `x` driver** (RetroArch's default). The
+`x` driver can't see driver mode and only serves mouse **0**. The aim is the
+system pointer; exclusive fullscreen hides it, so use *Windowed Fullscreen*
+(`video_windowed_fullscreen = "true"`). With two monitors, aiming off-screen
+can move the cursor to the other monitor and the click lands outside the game.
+
+**Performance and latency:**
+
+- *Fullscreen on the TV*: `video_fullscreen = "true"` and `video_monitor_index`
+  = the TV's monitor number (1 = first, 2 = second). On Cinnamon,
+  `gsettings set org.cinnamon.muffin unredirect-fullscreen-windows true` stops
+  the compositor from redrawing the screen every frame.
+- `video_max_swapchain_images = "2"` shows each frame ~16 ms sooner.
+- In Capybara, a *Motion smoothness* (`motion.interp_ms`) of 16 ms and
+  `motion.output_hz` 250 are enough for 60 Hz; higher values only add lag.
+- Turn on the TV's **Game Mode** (50–100 ms less on many TVs).
+
+Close RetroArch before editing `retroarch.cfg` by hand, and Capybara before
+editing `config.json`: both save their settings when they exit.
 
 ---
 
@@ -279,6 +316,10 @@ settings when it exits.
 | Cursor moves in steps | Raise *Motion smoothness* to 20–25 ms (Aim tab); keep the device closer to the computer. |
 | Shot lands off when pulling the trigger | Raise *Trigger jerk compensation* (Shooting tab). |
 | Cursor fights with the touchpad | Use *Light gun only (driver)* (Linux), or keep *Yield to touchpad/mouse* on. |
+| FPS drops a lot with the game on a TV/second monitor (Linux, laptop with 2 GPUs) | RetroArch's launcher has `PrefersNonDefaultGPU=true` and runs it on the discrete GPU; with the free `nouveau` (NVIDIA) driver that GPU stays at its lowest clock. Check with `ls -l /proc/$(pgrep -x retroarch)/fd \| grep renderD`. Copy `/usr/share/applications/com.libretro.RetroArch.desktop` to `~/.local/share/applications/`, change it to `PrefersNonDefaultGPU=false` and launch from the menu again. |
+| RetroArch with the `udev` driver: F1, Esc and the button keys don't work | Missing keyboard access: install `udev/71-retroarch-udev-keyboard.rules` (see [NES Zapper](#nes-zapper-in-retroarch-fceumm-core)). |
+| *System mouse* mode: shooting clicks outside the game and pauses the emulator, or the aim vanishes on the other monitor | In RetroArch (Linux), use *Light gun only (driver)* with the `udev` driver. |
+| Aim lags or moves in bursts even at 60 FPS | Bluetooth may be delivering readings in bursts (stalls of 100 ms or more). Move the computer closer or use a USB Bluetooth adapter near you; combo Wi-Fi + Bluetooth chips (e.g. Intel AX201) suffer from a weak antenna and busy Wi-Fi. |
 | macOS: nothing moves | Grant **Accessibility** and **Input Monitoring**, then reopen the app. |
 | Chose a language by mistake | Find **🌐 Language** at the top (always in English) and pick *English*. |
 

@@ -1,0 +1,10 @@
+# OPCIONAL: RetroArch com driver de entrada udev (modo "Só light gun (driver)").
+# Com udev o RetroArch lê o teclado direto do evdev; sem esta regra F1, Esc e
+# demais teclas não funcionam dentro dele (a menos que o usuário esteja no
+# grupo "input"). Libera a leitura dos teclados para o usuário logado na sessão
+# local; qualquer programa desse usuário passa a poder ler o que é digitado,
+# o mesmo efeito do grupo "input".
+#
+#   sudo cp udev/71-retroarch-udev-keyboard.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload && sudo udevadm trigger -s input
+SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_KEYBOARD}=="1", TAG+="uaccess"

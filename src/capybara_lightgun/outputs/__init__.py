@@ -95,7 +95,10 @@ def screen_region(cfg: dict) -> list:
     respeitada como está.
     """
     region = [float(v) for v in (cfg.get("region") or FULL)]
-    if not sys.platform.startswith("linux"):
+    if not sys.platform.startswith("linux") or cfg.get("output_target") == "lightgun":
+        # Modo driver: quem lê o dispositivo (RetroArch com driver udev) mapeia a
+        # faixa inteira dele para a própria tela do jogo, não para a área de
+        # trabalho; recortar o monitor aqui comprimiria a mira.
         return region
     mon = cfg.get("monitor")
     if mon is None and region != FULL:

@@ -249,25 +249,62 @@ jogo (ex.: `retroarch`, `mame`) para o perfil trocar sozinho.
 
 ### Zapper do NES no RetroArch (core FCEUmm)
 
-Testado no Linux (X11) com RetroArch 1.22:
+Testado no Linux (X11, Cinnamon) com RetroArch 1.22, notebook ligado a uma TV
+4K como segundo monitor.
 
-1. No Capybara Lightgun, use a saída **Mouse do sistema**. Assim o driver de
-   entrada padrão do RetroArch (`x`) já enxerga a arma. O modo *Só light gun
-   (driver)* fica invisível para esse driver.
-2. *Menu rápido → Controles → Controles da porta 2 → Tipo de dispositivo* =
+**Jeito recomendado no Linux: *Só light gun (driver)* + driver de entrada `udev`.**
+A arma não mexe no cursor do sistema, então ela nunca clica fora da janela do
+jogo (o que pausa o RetroArch) nem leva o cursor para o outro monitor.
+
+1. No Capybara Lightgun, use a saída **Só light gun (driver)**. Nesse modo a
+   arma cobre a tela inteira do jogo, qualquer que seja o monitor: o campo
+   *Monitor* é ignorado.
+2. Permissões (uma vez): a regra `70-capybara-lightgun.rules` (instalada por
+   `scripts/fix-linux-joycon.sh`) libera a arma e as teclas virtuais. Com
+   `udev` o RetroArch também lê o **teclado** direto do evdev; sem acesso, F1,
+   Esc e as teclas que os botões enviam não funcionam dentro dele. Instale a
+   regra opcional (ou entre no grupo `input`):
+   ```bash
+   sudo cp udev/71-retroarch-udev-keyboard.rules /etc/udev/rules.d/
+   sudo udevadm control --reload && sudo udevadm trigger -s input
+   ```
+   Ela deixa qualquer programa do seu usuário ler o teclado, o mesmo efeito do
+   grupo `input`.
+3. *Configurações → Drivers → Entrada* = **udev** (`input_driver = "udev"`) e
+   reinicie o RetroArch.
+4. *Menu rápido → Controles → Controles da porta 2 → Tipo de dispositivo* =
    **Zapper**. O Duck Hunt e a maioria dos jogos de Zapper só leem a
    **porta 2**: na porta 1 a mira aparece, mas o tiro não sai.
-3. *Configurações → Entrada → Controles da porta 2 → Índice do mouse* = **0**.
-   O driver `x` só atende o mouse 0: com outro índice a mira nem aparece.
-4. *Menu rápido → Opções do núcleo → Zapper Mode* = **Crosshair light gun**
-   (`fceumm_zapper_mode = "clightgun"`). O modo *Mouse* usa movimento relativo
-   e a mira desalinha.
-5. O gatilho é o clique esquerdo (`input_player2_gun_trigger_mbtn = "1"`, o
+5. *Configurações → Entrada → Controles da porta 2 → Índice do mouse* = o
+   dispositivo **Capybara Lightgun (driver)**. Sem estar no grupo `input`, ele
+   é o único mouse que o RetroArch consegue abrir, então fica no índice **0**.
+6. *Menu rápido → Opções do núcleo → Zapper Mode* = **Crosshair light gun**
+   (`fceumm_zapper_mode = "clightgun"`) e *Show Crosshair* ligado: a mira na
+   tela é a do jogo. O modo *Mouse* usa movimento relativo e a mira desalinha.
+7. O gatilho é o clique esquerdo (`input_player2_gun_trigger_mbtn = "1"`, o
    padrão). No Capybara, confira na aba *Botões* que o botão que você usa como
    gatilho está em *Gatilho*.
 
-Feche o RetroArch antes de editar o `retroarch.cfg` à mão, porque ele grava as
-configurações ao sair.
+**Alternativa: *Mouse do sistema* + driver `x`** (o padrão do RetroArch). O
+driver `x` não enxerga o modo driver, e só atende o mouse **0**. A mira é a seta
+do sistema; em tela cheia exclusiva o RetroArch a esconde, então use *Tela
+cheia em janela* (`video_windowed_fullscreen = "true"`). Com dois monitores,
+mirar fora da tela pode levar o cursor para o outro monitor e o clique cair
+fora do jogo.
+
+**Desempenho e atraso:**
+
+- *Tela cheia na TV*: `video_fullscreen = "true"` e `video_monitor_index` = o
+  número do monitor da TV (1 = primeiro, 2 = segundo). No Cinnamon,
+  `gsettings set org.cinnamon.muffin unredirect-fullscreen-windows true` evita
+  que o compositor recomponha a tela a cada quadro.
+- `video_max_swapchain_images = "2"` mostra o quadro ~16 ms mais cedo.
+- No Capybara, *Suavidade do movimento* (`motion.interp_ms`) de 16 ms e
+  `motion.output_hz` 250 bastam para 60 Hz; valores maiores só somam atraso.
+- Ligue o **Modo Jogo** da TV (de 50 a 100 ms a menos em muitas TVs).
+
+Feche o RetroArch antes de editar o `retroarch.cfg` à mão, e o Capybara antes de
+editar o `config.json`: os dois gravam as configurações ao sair.
 
 ---
 
@@ -284,6 +321,10 @@ configurações ao sair.
 | Cursor anda aos trancos | Aumente *Suavidade do movimento* para 20–25 ms (aba Mira); aproxime o dispositivo do computador. |
 | O tiro desvia ao apertar o gatilho | Aumente a *Compensação do tranco* (aba Tiro). |
 | O cursor disputa com o touchpad | Use *Só light gun (driver)* (Linux) ou mantenha *Ceder ao touchpad/mouse* ligado. |
+| FPS cai muito com o jogo numa TV/segundo monitor (Linux, notebook com 2 placas) | O atalho do RetroArch tem `PrefersNonDefaultGPU=true` e o roda na placa dedicada; com o driver livre `nouveau` (NVIDIA) ela fica na frequência mínima. Confira com `ls -l /proc/$(pgrep -x retroarch)/fd \| grep renderD`. Copie `/usr/share/applications/com.libretro.RetroArch.desktop` para `~/.local/share/applications/`, troque para `PrefersNonDefaultGPU=false` e abra pelo menu de novo. |
+| RetroArch com driver `udev`: F1, Esc e as teclas dos botões não funcionam | Falta acesso ao teclado: instale `udev/71-retroarch-udev-keyboard.rules` (veja o [Zapper do NES](#zapper-do-nes-no-retroarch-core-fceumm)). |
+| Modo *Mouse do sistema*: o tiro clica fora do jogo e pausa o emulador, ou a mira some no outro monitor | No RetroArch (Linux), use *Só light gun (driver)* com o driver `udev`. |
+| Mira atrasada ou aos trancos mesmo a 60 FPS | Pode ser o Bluetooth entregando as leituras em rajadas (paradas de 100 ms ou mais). Aproxime o computador ou use um adaptador Bluetooth USB perto de você; placas Wi-Fi + Bluetooth no mesmo chip (ex.: Intel AX201) sofrem com antena fraca e Wi-Fi ocupado. |
 | macOS: nada se mexe | Libere **Acessibilidade** e **Monitoramento de Entrada** e abra o aplicativo de novo. |
 | Escolheu um idioma por engano | Procure **🌐 Language** no topo (sempre em inglês) e escolha *Português (Brasil)* ou *English*. |
 

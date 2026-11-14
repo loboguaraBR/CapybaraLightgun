@@ -191,6 +191,10 @@ def test_screen_region_follows_primary_monitor_on_linux(monkeypatch):
     assert o.screen_region({"region": [0, 0, 1, 1], "monitor": 1}) == [0.5, 0.0, 1.0, 1.0]
     # área escolhida à mão continua valendo
     assert o.screen_region({"region": [0.1, 0, 0.9, 1], "monitor": None}) == [0.1, 0, 0.9, 1]
+    # modo driver: o emulador (udev) mapeia o dispositivo inteiro na tela do jogo
+    o._active_mon["idx"] = 1
+    assert o.screen_region({"region": [0, 0, 1, 1], "monitor": None, "output_target": "lightgun"}) == [0, 0, 1, 1]
+    o._active_mon["idx"] = None
     # um monitor só: nada muda
     monkeypatch.setattr(o, "x11_monitors", lambda: (mons[:1], (1920, 1080)))
     assert o.screen_region({"region": [0, 0, 1, 1], "monitor": None}) == [0, 0, 1, 1]
