@@ -87,7 +87,7 @@ FIELDS = {
         F(p="region", t="region", l="Screen area",
           h="Fraction of the desktop where the aim works (x0, y0, x1, y1). With 2 monitors side by side, "
             "the left one is 0 · 0 · 0.5 · 1."),
-        F(p="monitor", t="monitor", l="Monitor", h="Monitor number (0, 1…). -1 = use the area above.", nolinux=True),
+        F(p="monitor", t="monitor", l="Monitor", h="Monitor number (0, 1…). -1 = use the area above."),
         F(p="grab", t="check", l="Hide the controller from games",
           h="Games stop seeing the controller as a gamepad (avoids duplicate commands). Applies on reconnect.",
           linux=True),

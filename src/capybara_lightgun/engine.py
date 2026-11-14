@@ -16,6 +16,7 @@ from .filters import OneEuro2D
 from .fusion import BiasEstimator, Mahony
 from .geometry import Homography, heading, median_forward, project, rotate_yaw
 from .inputs import ButtonState, ImuSample, PointerSample
+from .outputs import screen_region
 
 DEG = math.pi / 180.0
 REL_COUNTS = (1920.0, 1080.0)  # "pixels" por tela inteira no modo relativo
@@ -132,6 +133,7 @@ class LightGun:
         self._shake_cool = 0.0
         self._pulse_release = None  # tiro curto agendado (recarregar por tranco)
         self.pointer_mode = False  # fonte "mouse comum"
+        self._lock_anchor = None  # trava de micro-movimento
         self.overlay_on = bool(cfg.get("overlay", {}).get("enabled", False))
         self.apply_config(cfg)
 
@@ -259,9 +261,18 @@ class LightGun:
                 pass
         clock = time.monotonic
         nxt = clock()
+        late_n, late_max, late_report = 0, 0.0, clock() + 5.0
         while True:
             nxt += self.output_period
             now = clock()
+            late = now - nxt
+            if late > 0.025:  # a thread do cursor ficou parada (mira trava e depois salta)
+                late_n += 1
+                late_max = max(late_max, late)
+            if now >= late_report:
+                if late_n:
+                    print(f"cursor atrasou {late_n}x nos últimos 5 s (máx {late_max * 1000:.0f} ms)", flush=True)
+                late_n, late_max, late_report = 0, 0.0, now + 5.0
             try:
                 if (self.render_delay > 0 and self.mode == "absolute" and self.history
                         and not self.pointer_mode and self.can_move(now)):
@@ -309,7 +320,7 @@ class LightGun:
         self._wall_at_sample = now
         self.samples += 1
         st = self.sensor_t
-        r = self.cfg.get("region") or [0.0, 0.0, 1.0, 1.0]
+        r = screen_region(self.cfg)
         w, h = (r[2] - r[0]) or 1.0, (r[3] - r[1]) or 1.0
         x, y = (p.x - r[0]) / w, (p.y - r[1]) / h
         self.raw = (x, y)
@@ -363,9 +374,14 @@ class LightGun:
         if self.mode == "relative":
             self._relative(x, y, can_move)
             return
-        if self.jitter_lock > 0 and self._last_out is not None:
-            if math.hypot(x - self._last_out[0], y - self._last_out[1]) < self.jitter_lock:
-                x, y = self._last_out
+        if self.jitter_lock > 0:
+            # Compara com a última posição travada, não com a desenhada: esta
+            # vem atrasada pela interpolação, e a mira ia e voltava.
+            a = self._lock_anchor
+            if a is not None and math.hypot(x - a[0], y - a[1]) < self.jitter_lock:
+                x, y = a
+            else:
+                self._lock_anchor = (x, y)
         self.onscreen = 0.0 <= x <= 1.0 and 0.0 <= y <= 1.0
         x = min(max(x, 0.0), 1.0)
         y = min(max(y, 0.0), 1.0)
@@ -426,6 +442,7 @@ class LightGun:
         self.history.clear()
         self._rel_prev = None
         self._last_out = None
+        self._lock_anchor = None
 
     def _press(self, name: str, act: str, now: float) -> None:
         if self.verbose:

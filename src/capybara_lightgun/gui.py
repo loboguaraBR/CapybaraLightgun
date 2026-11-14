@@ -23,6 +23,7 @@ from . import __version__
 from .activewin import active_window_text
 from .client import ClientApp, redirect_output_to_log
 from .config import ACTIONS, BUTTON_LABELS, BUTTON_NAMES, KEY_NAMES, PRESETS, ConfigStore
+from .outputs import cursor_from_gun, screen_region
 from .i18n import LANGUAGES, SELECTOR_LABEL, current as current_language, save_language, saved_language, \
     set_language, tr
 
@@ -292,8 +293,15 @@ class ActionPicker(QtWidgets.QWidget):
 # --------------------------------------------------------------------------
 # Janelas de tela cheia
 # --------------------------------------------------------------------------
-def _target_screen(widget=None) -> QtGui.QScreen:
-    return QtWidgets.QApplication.primaryScreen()
+def _target_screen(widget=None, cfg: dict | None = None) -> QtGui.QScreen:
+    """Monitor da arma: o centro da área configurada (calibração e estande abrem nele)."""
+    prim = QtWidgets.QApplication.primaryScreen()
+    if cfg is None:
+        return prim
+    vg = prim.virtualGeometry()
+    r = screen_region(cfg)
+    c = QtCore.QPoint(int(vg.x() + (r[0] + r[2]) / 2 * vg.width()), int(vg.y() + (r[1] + r[3]) / 2 * vg.height()))
+    return QtWidgets.QApplication.screenAt(c) or prim
 
 
 class CalibrationWindow(QtWidgets.QWidget):
@@ -311,7 +319,7 @@ class CalibrationWindow(QtWidgets.QWidget):
         self.timer = QtCore.QTimer(self, interval=30, timeout=self._tick)
 
     def start(self) -> None:
-        scr = _target_screen()
+        scr = _target_screen(cfg=self.app.gun.cfg)
         self.setGeometry(scr.geometry())
         self.showFullScreen()
         self.activateWindow()
@@ -404,7 +412,7 @@ class TestRange(QtWidgets.QWidget):
         self.timer.setTimerType(Qt.PreciseTimer)
 
     def start(self) -> None:
-        self.setGeometry(_target_screen().geometry())
+        self.setGeometry(_target_screen(cfg=self.app.gun.cfg).geometry())
         self.showFullScreen()
         self.activateWindow()
         self._new_target()
@@ -534,7 +542,7 @@ class CrosshairOverlay(QtWidgets.QWidget):
             self.resize(size, size)
         x, y = g.render_pos()
         vg = QtWidgets.QApplication.primaryScreen().virtualGeometry()
-        r = g.cfg.get("region") or [0, 0, 1, 1]
+        r = screen_region(g.cfg)
         px = vg.x() + (r[0] + x * (r[2] - r[0])) * vg.width()
         py = vg.y() + (r[1] + y * (r[3] - r[1])) * vg.height()
         self.move(int(px - size / 2), int(py - size / 2))
@@ -1035,26 +1043,25 @@ class MainWindow(QtWidgets.QMainWindow):
             self._prev_cur = None
             return
         cur = QtGui.QCursor.pos()
-        out = g._last_out
         now = time.monotonic()
         prev = getattr(self, "_prev_cur", None)
-        if prev is not None:
-            dx, dy = cur.x() - prev.x(), cur.y() - prev.y()
-            if now < g.yield_until:
-                if abs(dx) + abs(dy) > 2:  # ainda mexendo no touchpad
-                    g.yield_until = now + float(y.get("seconds", 2.5))
+        if now < g.yield_until:
+            if prev is not None and abs(cur.x() - prev.x()) + abs(cur.y() - prev.y()) > 2:
+                g.yield_until = now + float(y.get("seconds", 2.5))  # ainda mexendo no touchpad
+            self._far = 0
+        else:
+            vg = QtWidgets.QApplication.primaryScreen().virtualGeometry()
+            frac = ((cur.x() - vg.x()) / max(1, vg.width()), (cur.y() - vg.y()) / max(1, vg.height()))
+            recent = getattr(g.out, "recent", ())
+            if cursor_from_gun(frac, recent, now, (vg.width(), vg.height())):
+                self._far = 0
             else:
-                ex = ey = 0.0
-                po = getattr(self, "_prev_out", None)
-                if out and po:
-                    vg = QtWidgets.QApplication.primaryScreen().virtualGeometry()
-                    r = cfg.get("region") or [0, 0, 1, 1]
-                    ex = (out[0] - po[0]) * (r[2] - r[0]) * vg.width()
-                    ey = (out[1] - po[1]) * (r[3] - r[1]) * vg.height()
-                if math.hypot(dx - ex, dy - ey) > 12 + 0.5 * math.hypot(ex, ey):
+                self._far = getattr(self, "_far", 0) + 1
+                if self._far >= 2:  # longe da arma em 2 leituras seguidas: foi o touchpad/mouse
                     g.yield_until = now + float(y.get("seconds", 2.5))
+                    self._far = 0
+                    print("a arma cedeu o cursor ao mouse/touchpad", flush=True)
         self._prev_cur = cur
-        self._prev_out = out
 
     def toggle_pause(self) -> None:
         self.app.gun.paused = not self.app.gun.paused

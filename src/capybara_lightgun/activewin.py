@@ -1,13 +1,12 @@
 """Texto que identifica a janela ativa (classe + título + programa).
 
 Usado para trocar de perfil automaticamente conforme o jogo aberto.
-Linux/X11: xprop. Windows: GetForegroundWindow + nome do executável.
+Linux/X11: libX11 (ctypes). Windows: GetForegroundWindow + nome do executável.
 macOS: lsappinfo (nome do aplicativo em primeiro plano, sem permissões extras).
 """
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 import sys
 
@@ -18,7 +17,7 @@ def active_window_text() -> str:
             return _windows()
         if sys.platform == "darwin":
             return _mac()
-        if os.environ.get("DISPLAY") and shutil.which("xprop"):
+        if os.environ.get("DISPLAY"):
             return _x11()
     except Exception:
         pass
@@ -26,13 +25,10 @@ def active_window_text() -> str:
 
 
 def _x11() -> str:
-    out = subprocess.run(["xprop", "-root", "_NET_ACTIVE_WINDOW"], capture_output=True, text=True, timeout=1).stdout
-    wid = out.strip().split()[-1] if out.strip() else ""
-    if not wid.startswith("0x") or wid == "0x0":
-        return ""
-    info = subprocess.run(["xprop", "-id", wid, "WM_CLASS", "_NET_WM_NAME"],
-                          capture_output=True, text=True, timeout=1).stdout
-    return info.replace("\n", " ")
+    # Direto pela libX11: rodar `xprop` aqui (thread do painel) travava a mira.
+    from . import x11
+
+    return x11.window_text(x11.active_window())
 
 
 def _windows() -> str:

@@ -173,3 +173,39 @@ def test_old_profile_gets_new_default_buttons_but_keeps_its_own(tmp_path):
     assert b["ZR"] == "autofire"  # mapeamento do perfil manda
     assert b["A"] == ""  # "nada" escolhido pelo usuário não volta
     assert b["BTN_TR2"] == "key:r"  # nome cru do evdev continua
+
+
+def test_screen_region_follows_primary_monitor_on_linux(monkeypatch):
+    """Dois monitores lado a lado: a arma fica no monitor do jogo, e não espalhada nos dois."""
+    import capybara_lightgun.outputs as o
+
+    monkeypatch.setattr(o.sys, "platform", "linux")
+    mons = [(0, 0, 1920, 1080, True), (1920, 0, 1920, 1080, False)]
+    monkeypatch.setattr(o, "x11_monitors", lambda: (mons, (3840, 1080)))
+    monkeypatch.setattr(o, "_active_mon", {"idx": None, "started": True})
+    assert o.screen_region({"region": [0, 0, 1, 1], "monitor": None}) == [0.0, 0.0, 0.5, 1.0]
+    # jogo (janela ativa) no monitor da direita: a arma vai junto
+    o._active_mon["idx"] = 1
+    assert o.screen_region({"region": [0, 0, 1, 1], "monitor": None}) == [0.5, 0.0, 1.0, 1.0]
+    o._active_mon["idx"] = None
+    assert o.screen_region({"region": [0, 0, 1, 1], "monitor": 1}) == [0.5, 0.0, 1.0, 1.0]
+    # área escolhida à mão continua valendo
+    assert o.screen_region({"region": [0.1, 0, 0.9, 1], "monitor": None}) == [0.1, 0, 0.9, 1]
+    # um monitor só: nada muda
+    monkeypatch.setattr(o, "x11_monitors", lambda: (mons[:1], (1920, 1080)))
+    assert o.screen_region({"region": [0, 0, 1, 1], "monitor": None}) == [0, 0, 1, 1]
+
+
+def test_cursor_lagging_behind_the_gun_is_not_the_touchpad():
+    """O X aplica o movimento com atraso: cursor numa posição recente da arma = arma."""
+    from capybara_lightgun.outputs import cursor_from_gun
+
+    size = (3840, 1080)
+    recent = [(1.00 + i * 0.002, 0.40 - i * 0.001, 0.5) for i in range(50)]  # virada rápida para a esquerda
+    now = recent[-1][0]
+    assert cursor_from_gun((0.40 - 20 * 0.001, 0.5), recent, now, size)  # cursor 30 ms atrás da arma
+    assert not cursor_from_gun((0.80, 0.2), recent, now, size)  # touchpad levou o cursor para longe
+    # arma parada (trava de micro-movimento): vale a última posição
+    still = [(0.0, 0.25, 0.5)]
+    assert cursor_from_gun((0.25, 0.5), still, 10.0, size)
+    assert not cursor_from_gun((0.30, 0.5), still, 10.0, size)

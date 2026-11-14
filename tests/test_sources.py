@@ -119,3 +119,19 @@ def test_auto_profile_switch(tmp_path):
     assert s.active == "MAME (-offscreen_reload)"
     assert app.auto_switch('WM_CLASS = "google-chrome"') == "Default (light gun)"  # volta ao manual
     assert app.auto_switch("Capybara Lightgun") is None
+
+
+def test_jitter_lock_never_moves_backwards():
+    """Trava de micro-movimento: num movimento lento a mira só avança (sem vai-e-volta)."""
+    gun, out = _gun(aim={"sensitivity_x": 1.0, "sensitivity_y": 1.0, "offset_x": 0.0, "offset_y": 0.0,
+                         "jitter_lock": 0.01},
+                    motion={"interp_ms": 16, "output_hz": 250, "max_extrap_ms": 40})
+    xs = []
+    for i in range(200):
+        st = i * 0.005
+        # posição desenhada vem atrasada pela interpolação (como no laço do cursor)
+        gun._last_out = (xs[-4], 0.5) if len(xs) >= 4 else None
+        gun._on_aim((0.3 + i * 0.0004, 0.5), st, 0.0)
+        xs.append(gun.pos[0])
+    assert all(b >= a for a, b in zip(xs, xs[1:]))
+    assert xs[-1] > 0.36  # e acompanha o movimento
